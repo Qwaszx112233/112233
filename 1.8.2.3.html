@@ -1537,17 +1537,16 @@
         const posCell = this.getCellFromPoint(e.clientX, e.clientY);
         if (!posCell) return;
 
-        this.updatePreviewBubble(this.getCurrentChainSum());
-
         const len = this.selected.length;
         if (len === 0) return;
 
-        // откат назад по цепочке
+        // шаг назад
         if (len >= 2) {
           const prev = this.selected[len - 2];
           if (prev.x === posCell.x && prev.y === posCell.y) {
             this.selected.pop();
             this.chainNumbers.pop();
+
             Chain.numbers = [...this.chainNumbers];
             updateChainSum();
             this.updatePreviewBubble(Chain.sum);
@@ -1556,32 +1555,32 @@
           }
         }
 
-        // уже выбрана
-        if (this.selected.some(s => s.x === posCell.x && s.y === posCell.y)) return;
+        // нельзя брать уже выбранное
+        if (this.selected.some(s => s.x === posCell.x && s.y === posCell.y)) {
+          return;
+        }
 
-        // не сосед
+        // проверка соседства
         const last = this.selected[len - 1];
         if (!this.isAdjacent(last, posCell)) return;
 
-        // --- АКСИОМНАЯ ЛОГИКА ---
+        // ───── АКСИОМАТИЧЕСКАЯ ЧАСТЬ ─────
         const newNum = this.grid[posCell.x][posCell.y].number;
         const L = this.chainNumbers[this.chainNumbers.length - 1];
-
-        // предполагаемая сумма, ЕСЛИ добавим newNum
-        const nextSum = Chain.sum + newNum;
+        const S = Chain.sum;
 
         const canMove =
           newNum === L ||
           newNum === L * 2 ||
           (
-            newNum === nextSum &&
-            nextSum >= L &&
-            this.isPowerOfTwo(nextSum)
+            newNum === S &&
+            S >= L &&
+            this.isPowerOfTwo(S)
           );
 
         if (!canMove) return;
+        // ───────────────────────────────
 
-        // добавляем
         this.selected.push(posCell);
         this.chainNumbers.push(newNum);
 
@@ -1591,32 +1590,6 @@
         this.updatePreviewBubble(Chain.sum);
         this.render();
       }
-
-        const newNum = this.grid[posCell.x][posCell.y].number;
-        const L = this.chainNumbers[this.chainNumbers.length - 1];
-        const S = Chain.sum;
-
-        const canMove =
-        newNum === L ||
-        newNum === L * 2 ||
-        (
-         newNum === S &&
-        S >= L &&
-        isPowerOfTwo(S)
-        );
-
-        if (!canMove) return;
-
-          this.selected.push(posCell);
-          this.chainNumbers.push(newNum);
-
-          Chain.numbers = [...this.chainNumbers];
-          updateChainSum();
-
-          this.updatePreviewBubble(Chain.sum);
-          this.render();
-          }
-        }
 
       handlePointerUp() {
         if (!this.isDragging) return;
