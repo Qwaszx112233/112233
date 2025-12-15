@@ -1,0 +1,2299 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Lost Number — числова головоломка</title>
+
+  <style>
+    :root {
+      --primary-color: #e91e63;
+      --secondary-color: #ff4081;
+      --accent-color: #f8bbd9;
+      --bg-color: #fff5f7;
+      --text-color: #880e4f;
+      --white: #ffffff;
+      --shadow: 0 4px 15px rgba(233, 30, 99, 0.18);
+      --cell-color: #ffeef2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #fff5f7 0%, #ffeef2 100%);
+      min-height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      touch-action: manipulation;
+      color: var(--text-color);
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+    }
+
+    .floating-hearts {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
+    .floating-heart {
+      position: absolute;
+      font-size: 1rem;
+      opacity: 0.12;
+      animation: floatAround 14s linear infinite;
+    }
+    @keyframes floatAround {
+      0%   { transform: translate(0,0) rotate(0deg);   }
+      25%  { transform: translate(60px,80px) rotate(90deg); }
+      50%  { transform: translate(30px,150px) rotate(180deg);}
+      75%  { transform: translate(-50px,120px) rotate(270deg);}
+      100% { transform: translate(0,0) rotate(360deg); }
+    }
+
+    .main-menu { text-align: center; }
+    .game-logo {
+      margin-bottom: 8px;
+    }
+    .game-logo span {
+      font-weight: 900;
+      font-size: clamp(1.4rem, 5vw, 1.8rem);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .game-title {
+      font-size: clamp(2rem, 8vw, 2.6rem);
+      font-weight: 900;
+      color: var(--primary-color);
+      margin-bottom: 18px;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: heartbeat 2.4s ease-in-out infinite;
+    }
+    @keyframes heartbeat {
+      0%,100% { transform: scale(1); }
+      15%     { transform: scale(1.07); }
+      30%     { transform: scale(0.98); }
+      45%     { transform: scale(1.05); }
+      60%     { transform: scale(1); }
+    }
+    .subtitle {
+      max-width: 320px;
+      font-size: 0.95rem;
+      margin-bottom: 22px;
+      line-height: 1.4;
+    }
+    .menu-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 280px;
+    }
+    .menu-btn {
+      padding: 14px 18px;
+      border-radius: 16px;
+      border: none;
+      background: linear-gradient(45deg,var(--primary-color),var(--secondary-color));
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+    .menu-btn.secondary {
+      background:#fff;
+      color:var(--primary-color);
+      border:2px solid var(--accent-color);
+    }
+    .menu-btn:active {
+      transform: scale(0.96);
+      box-shadow:0 2px 8px rgba(0,0,0,0.18);
+    }
+    .menu-features {
+      margin-top:20px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      max-width:280px;
+    }
+    .feature-item {
+      padding:10px 6px;
+      border-radius:12px;
+      background:#fff;
+      font-size:0.8rem;
+      font-weight:700;
+      box-shadow:var(--shadow);
+    }
+
+    .game-screen {
+      justify-content:flex-start;
+      padding:8px 10px 10px;
+    }
+    .game-header-row {
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin-bottom:6px;
+    }
+    .home-btn,
+    .save-btn,
+    .sound-btn {
+      padding:7px 10px;
+      border-radius:10px;
+      border:2px solid var(--accent-color);
+      background:#fff;
+      font-size:1.05rem;
+      cursor:pointer;
+      box-shadow:var(--shadow);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .header-text {
+      flex:1;
+      text-align:center;
+      font-weight:700;
+      font-size:0.9rem;
+    }
+
+    .goal-box {
+      width:100%;
+      margin-top:2px;
+      padding:6px 8px;
+      border-radius:10px;
+      background:#fff;
+      border:2px solid var(--accent-color);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:0.85rem;
+      font-weight:700;
+      box-shadow:var(--shadow);
+      gap: 4px;
+      flex-wrap:wrap;
+    }
+
+    .xp-wrap { width:100%; margin:8px 0 4px; }
+    .xp-bar {
+      position:relative;
+      height:16px;
+      border-radius:10px;
+      border:2px solid var(--accent-color);
+      background:#ffeef2;
+      overflow:hidden;
+      padding:0 6px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      box-shadow: var(--shadow);
+    }
+    .xp-inner {
+      position:absolute;
+      left:0;
+      top:0;
+      bottom:0;
+      width:0%;
+      background:linear-gradient(45deg,var(--primary-color),var(--secondary-color));
+      opacity:0.22;
+      transition:width 0.35s.ease;
+    }
+
+    .xp-text {
+      position:relative;
+      z-index:1;
+      width:100%;
+      text-align:center;
+      font-size:0.75rem;
+      font-weight:700;
+      color:var(--text-color);
+      pointer-events:none;
+    }
+
+    .bonuses {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:6px;
+      flex-wrap:nowrap;
+      margin-bottom:4px;
+      width:100%;
+    }
+    .bonuses-left {
+      display:flex;
+      gap:6px;
+      flex-wrap:nowrap;
+    }
+    .bonus-btn {
+      min-width:40px;
+      padding:6px 6px;
+      border-radius:10px;
+      border:2px solid var(--accent-color);
+      background:var(--cell-color);
+      font-size:1rem;
+      font-weight:700;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:var(--shadow);
+      transition:transform 0.12s ease, background 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+    }
+    .bonus-btn span { font-size:0.8rem; font-weight:800; }
+    .bonus-btn:active:not(:disabled) { transform:scale(0.95); }
+    .bonus-btn:disabled { opacity:0.4; cursor:not-allowed; box-shadow:none; }
+    .bonus-btn.active { background:var(--primary-color); color:#fff; }
+
+    .dice-btn-label {
+      font-size:0.7rem;
+      margin-left:4px;
+      font-weight:700;
+    }
+
+    .bonus-count {
+      margin-left:4px;
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .game-content { flex:1; width:100%; display:flex; flex-direction:column; margin-top:4px; min-height:0; }
+    .grid-container { flex:1; min-height:0; width:100%; display:flex; align-items:center; justify-content:center; position:relative; }
+    .grid {
+      display:grid; grid-template-columns:repeat(5,1fr); grid-template-rows:repeat(8,1fr);
+      gap:2px; width:100%; max-width:420px; height:100%; max-height:100%;
+      padding:6px; border-radius:14px; background:#fff; box-shadow:var(--shadow);
+      touch-action:none; user-select:none; position:relative; overflow:hidden;
+    }
+
+    .cell {
+      position:relative; border-radius:9px; background:var(--cell-color);
+      box-shadow:0 1px 3px rgba(233,30,99,0.2); overflow:hidden; border:1px solid transparent;
+      cursor:pointer; transition:transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+    }
+    .cell::before { content:""; display:block; padding-top:100%; }
+    .cell-inner {
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      font-size:clamp(0.8rem,2.4vw,1rem); font-weight:800; color:var(--text-color);
+      pointer-events:none; transition:transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+    }
+    .cell.selected { transform:scale(0.96); border-color:var(--secondary-color); box-shadow:0 0 0 2px rgba(255,64,129,0.45); }
+    .cell.selected .cell-inner { background:var(--secondary-color); color:#fff; border-radius:7px; }
+    .cell.merged .cell-inner { animation:pop 0.22s ease; }
+    .cell.popping { animation:bubbleOut 0.27s ease forwards; }
+    .cell.carry .cell-inner { animation:carryIn 0.45s ease-out; }
+
+    @keyframes pop {
+      0% { transform:scale(1.2); opacity:0.7; }
+      100%{ transform:scale(1);   opacity:1;   }
+    }
+    @keyframes bubbleOut {
+      0% { transform:scale(1);   opacity:1; }
+      100%{ transform:scale(0);   opacity:0;}
+    }
+    @keyframes carryIn {
+      0% { transform:scale(0.3); opacity:0; }
+      60%{ transform:scale(1.1); opacity:1; }
+      100%{transform:scale(1);   opacity:1; }
+    }
+
+    @keyframes shuffleWiggle {
+      0%   { transform:translate(0,0); }
+      20%  { transform:translate(-3px,2px); }
+      40%  { transform:translate(3px,-2px); }
+      60%  { transform:translate(-2px,-1px); }
+      80%  { transform:translate(2px,2px); }
+      100% { transform:translate(0,0); }
+    }
+    .cell.shuffle-anim .cell-inner {
+      animation: shuffleWiggle 0.35s ease;
+    }
+
+    .cell[data-number="2"]    { background:#ffdee7; }
+    .cell[data-number="4"]    { background:#ffe6aa; }
+    .cell[data-number="8"]    { background:#d8ffd2; }
+    .cell[data-number="16"]   { background:#d5f1ff; }
+    .cell[data-number="32"]   { background:#f0d5ff; }
+    .cell[data-number="64"]   { background:#ffd6bf; }
+    .cell[data-number="128"]  { background:#f6f0b8; }
+    .cell[data-number="256"]  { background:#eedcff; }
+    .cell[data-number="512"]  { background:#cfe9ff; }
+    .cell[data-number="1024"] { background:#ffe1c4; }
+    .cell[data-number="2048"] { background:#f4d6ff; }
+    .cell[data-number="4096"] { background:#c7f5c4; }
+    .cell[data-number="8192"] { background:#ffb9b9; }
+
+    .love-bubble {
+      position:absolute; max-width:80%; padding:8px 12px; border-radius:999px;
+      background:rgba(255,255,255,0.96); border:2px solid var(--accent-color); box-shadow:var(--shadow);
+      font-size:0.8rem; font-weight:700; text-align:center; animation:loveFloat 2.4s ease-out forwards;
+      pointer-events:none; z-index:10;
+    }
+    @keyframes loveFloat {
+      0% { opacity:0; transform:translateY(10px) scale(0.9); }
+      20% { opacity:1; transform:translateY(0) scale(1); }
+      80% { opacity:1; transform:translateY(-8px) scale(1); }
+      100% { opacity:0; transform:translateY(-18px) scale(0.97); }
+    }
+
+    .preview-bubble {
+      position:absolute;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.98);
+      border:2px solid var(--accent-color);
+      font-size:0.9rem;
+      font-weight:800;
+      pointer-events:none;
+      white-space:nowrap;
+      box-shadow:var(--shadow);
+      opacity:0;
+      transform: translate(-50%, 0);
+      transition:opacity 0.1s ease, transform 0.15s ease;
+      z-index:9;
+    }
+
+    .victory-overlay,
+    .level-overlay,
+    .dice-overlay {
+      position:fixed; inset:0; background:rgba(255,245,247,0.96);
+      display:flex; align-items:center; justify-content:center; z-index:20;
+    }
+    .victory-overlay.hidden,
+    .level-overlay.hidden,
+    .dice-overlay.hidden {
+      display:none;
+    }
+    .victory-content,
+    .level-content,
+    .dice-content {
+      background:#fff; border-radius:20px; padding:22px 18px;
+      box-shadow:0 18px 40px rgba(233,30,99,0.35); text-align:center; max-width:92%;
+    }
+    .level-title, .victory-title { font-size:1.5rem; color:var(--primary-color); margin-bottom:8px; font-weight:900; }
+    .level-text, .victory-text { font-size:0.95rem; margin-bottom:12px; }
+    .level-stats { font-size:0.85rem; text-align:left; margin:0 auto 10px; max-width:260px; line-height:1.4; }
+    .level-countdown { font-weight:700; margin-top:4px; }
+
+    .dice-title { font-size:1.3rem; font-weight:900; color:var(--primary-color); margin-bottom:8px; }
+    .dice-roller {
+      width:80px; height:80px; margin:8px auto 12px; border-radius:16px;
+      display:flex; align-items:center; justify-content:center; font-size:2rem;
+      background:linear-gradient(45deg,var(--primary-color),var(--secondary-color)); color:#fff; box-shadow:var(--shadow);
+      animation: none;
+    }
+    .dice-roller.spin { animation: spin 1s ease-in-out infinite; }
+    @keyframes spin {
+      0% { transform:rotate(0deg) scale(1); }
+      50%{ transform:rotate(180deg) scale(1.08); }
+      100%{transform:rotate(360deg) scale(1); }
+    }
+    .dice-choices { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .dice-choice {
+      min-width:140px; padding:10px 12px; border-radius:12px; border:2px solid var(--accent-color);
+      background:#fff; box-shadow:var(--shadow); cursor:pointer; font-weight:800;
+    }
+    .dice-close { margin-top:10px; }
+
+    .settings-screen {
+      padding:20px 18px; text-align:center;
+    }
+    .settings-title {
+      font-size:1.6rem; margin-bottom:16px; color:var(--primary-color); font-weight:800;
+    }
+    .settings-options {
+      max-width:320px; width:100%; display:flex; flex-direction:column; gap:12px;
+    }
+    .setting-item {
+      background:#fff; border-radius:12px; padding:10px 12px; box-shadow:var(--shadow); text-align:left;
+    }
+    .setting-label { font-weight:700; font-size:0.9rem; margin-bottom:4px; }
+    .setting-control {
+      width:100%; padding:6px 8px; border-radius:8px; border:2px solid var(--accent-color);
+      font-size:0.9rem; background:#fff;
+    }
+    .back-btn-menu { margin-top:16px; }
+
+    @media (max-height:620px){
+      .game-screen { padding-top:6px; }
+      .grid { padding:4px; }
+    }
+    @media (max-width:340px){
+      .menu-buttons { max-width:250px; }
+      .dice-choice { min-width:120px; }
+    }
+
+    #previewBubble {
+      position: absolute;
+      transform: translate(-50%, 0);
+    }
+    
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 6px rgba(0, 255, 0, 0.4);
+        transform: translate(-50%, 0) scale(1);
+      }
+      50% {
+        box-shadow: 0 0 14px rgba(0, 255, 0, 0.9);
+        transform: translate(-50%, 0) scale(1.06);
+      }
+      100% {
+        box-shadow: 0 0 6px rgba(0, 255, 0, 0.4);
+        transform: translate(-50%, 0) scale(1);
+      }
+    }
+
+    #previewBubble.valid-sum {
+      animation: pulse 1.1s infinite;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="floating-hearts" id="floatingHearts"></div>
+
+  <div class="victory-overlay hidden" id="victoryOverlay">
+    <div class="victory-content">
+      <div class="victory-title" data-i18n="victory_title">🎉 Вітаємо! 🎉</div>
+      <div class="victory-text" data-i18n="victory_text">
+        Ви дійшли до фінального рівня цієї версії гри. Але завжди можна почати нову спробу 🙂
+      </div>
+      <div class="menu-buttons" style="margin-top:8px;">
+        <button class="menu-btn" id="playAgainBtn" data-i18n="btn_play_again">🔄 Почати знову</button>
+        <button class="menu-btn secondary" id="backToMenuBtn" data-i18n="btn_back_to_menu">🏠 Головне меню</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="level-overlay hidden" id="levelOverlay">
+    <div class="level-content">
+      <div class="level-title" id="levelOverlayTitle">Рівень пройдено ✨</div>
+      <div class="level-text" id="levelOverlayText"></div>
+      <div class="level-stats" id="levelStats"></div>
+      <div class="level-countdown" id="levelCountdown"></div>
+    </div>
+  </div>
+
+  <div class="dice-overlay hidden" id="diceOverlay">
+    <div class="dice-content">
+      <div class="dice-title" id="diceTitle">Кубик бонусів 🎲</div>
+      <div class="dice-roller" id="diceRoller">🎲</div>
+      <div id="diceInfo" style="margin-bottom:8px; font-weight:700;"></div>
+      <div class="dice-choices" id="diceChoices"></div>
+      <div class="menu-buttons" style="margin-top:10px;">
+        <button class="menu-btn secondary dice-close" id="diceCloseBtn" data-i18n="btn_close_dice">Закрити</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen main-menu" id="mainMenuScreen">
+    <div class="game-logo">
+      <!-- сюда потом можно подставить картинку логотипа -->
+      <span>Lost Number</span>
+    </div>
+    <div class="game-title" data-i18n="main_title">Числова головоломка</div>
+    <div class="subtitle" data-i18n="main_subtitle">
+      Спокійна головоломка з числами. Грайте у своєму темпі, без поспіху.
+    </div>
+    <div class="menu-buttons">
+      <button class="menu-btn" id="continueBtn" data-i18n="btn_continue">▶ Продовжити</button>
+      <button class="menu-btn secondary" id="newGameBtn" data-i18n="btn_new_game">🎮 Нова гра</button>
+      <button class="menu-btn secondary" id="settingsBtn" data-i18n="btn_settings">⚙️ Налаштування</button>
+      <button class="menu-btn secondary" id="aboutBtn" data-i18n="btn_about">ℹ️ Про гру</button>
+    </div>
+    <div class="menu-features">
+      <div class="feature-item" data-i18n="feature_1">Зі смаком</div>
+      <div class="feature-item" data-i18n="feature_2">Поступове ускладнення</div>
+      <div class="feature-item" data-i18n="feature_3">Зберігання прогресу</div>
+      <div class="feature-item" data-i18n="feature_4">Для всієї родини</div>
+    </div>
+  </div>
+
+  <div class="screen game-screen hidden" id="gameScreen">
+    <div class="game-header-row">
+      <button class="home-btn" id="homeBtn">🏠</button>
+      <div class="header-text" id="headerText" data-i18n="header_text">Lost Number — числова головоломка</div>
+      <button class="sound-btn" id="soundToggleBtn" title="Звук">🔊</button>
+      <button class="save-btn" id="saveBtn">💾</button>
+    </div>
+
+    <div class="goal-box">
+      <span id="levelLabel">Рівень 1</span>
+      <span>·</span>
+      <span data-i18n="goal_label">Ціль</span>:
+      <span id="targetValue">64</span>
+    </div>
+
+    <div class="xp-wrap">
+      <div class="xp-bar">
+        <div class="xp-inner" id="xpBar"></div>
+        <div class="xp-text" id="xpText">Очки: 0</div>
+      </div>
+    </div>
+
+    <div class="bonuses">
+      <div class="bonuses-left">
+        <button class="bonus-btn" id="bonus-explosion" title="Вибух 3×3">
+          💥 <span class="bonus-count" id="count-explosion">0</span>
+        </button>
+        <button class="bonus-btn" id="bonus-shuffle" title="Перемішати">
+          🔄 <span class="bonus-count" id="count-shuffle">0</span>
+        </button>
+        <button class="bonus-btn" id="bonus-destroy" title="Розбити клітинку">
+          🔨 <span class="bonus-count" id="count-destroy">0</span>
+        </button>
+      </div>
+      <button class="bonus-btn" id="bonus-dice" title="Кубик бонусів">
+        🎲 <span class="dice-btn-label">(<span id="diceCostLabel">—</span>)</span>
+      </button>
+    </div>
+
+    <div class="game-content">
+      <div class="grid-container">
+        <div class="grid" id="grid"></div>
+        <div class="preview-bubble" id="previewBubble">0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen settings-screen hidden" id="settingsScreen">
+    <div class="settings-title" data-i18n="settings_title">Налаштування ⚙️</div>
+    <div class="settings-options">
+      <div class="setting-item">
+        <span class="setting-label" data-i18n="settings_animations_label">Анімації:</span>
+        <select class="setting-control" id="animationSelect">
+          <option value="on" selected data-i18n="settings_animations_on">Увімкнені</option>
+          <option value="off" data-i18n="settings_animations_off">Вимкнені</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <span class="setting-label" data-i18n="settings_sound_label">Звук:</span>
+        <select class="setting-control" id="soundSelect">
+          <option value="on" selected data-i18n="settings_sound_on">Увімкнений</option>
+          <option value="off" data-i18n="settings_sound_off">Вимкнений</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <span class="setting-label" data-i18n="settings_language_label">Мова інтерфейсу:</span>
+        <select class="setting-control" id="languageSelect">
+          <option value="ua" data-i18n="settings_language_ua">Українська</option>
+          <option value="ru" data-i18n="settings_language_ru">Русский</option>
+          <option value="en" data-i18n="settings_language_en">English</option>
+        </select>
+      </div>
+    </div>
+    <div class="menu-buttons back-btn-menu">
+      <button class="menu-btn" id="saveSettingsBtn" data-i18n="btn_save_settings">💾 Зберегти</button>
+      <button class="menu-btn secondary" id="backFromSettingsBtn" data-i18n="btn_back">← Назад</button>
+    </div>
+  </div>
+
+  <div class="screen settings-screen hidden" id="aboutScreen">
+    <div class="settings-title" data-i18n="about_title">Про гру ℹ️</div>
+    <div class="settings-options">
+      <div class="setting-item" style="text-align:center;">
+        <p style="margin-bottom:10px;font-weight:700;" data-i18n="about_p1">
+          Lost Number — це спокійна логічна гра з числами.
+        </p>
+        <p style="font-size:0.9rem;line-height:1.4;" data-i18n="about_p2">
+          Об’єднуйте однакові та зростаючі числа дотиком, отримуйте більші значення та рухайтеся з рівня на рівень.
+        </p>
+        <p style="margin-top:10px;font-size:0.9rem;line-height:1.4;" data-i18n="about_p3">
+          Грайте так, як зручно саме вам.
+        </p>
+      </div>
+    </div>
+    <div class="menu-buttons back-btn-menu">
+      <button class="menu-btn secondary" id="backFromAboutBtn" data-i18n="btn_back">← Назад</button>
+    </div>
+  </div>
+
+  <script>
+
+    /*
+    ══════════════════════════════════════════════
+    AXIOMA — АКСИОГРАФИЯ ИГРЫ
+    ══════════════════════════════════════════════
+
+    • Этот блок — канон игры.
+
+    • Он описывает ЗАКОНЫ МИРА, а не реализацию.
+
+    • Любая логика игры:
+      — обязана соответствовать этим аксиомам
+      — не может их обходить
+      — при конфликте код меняется, аксиомы — нет
+
+    ──────────────────────────────────────────────
+    1. ЧИСЛОВАЯ ПРИРОДА МИРА
+    ──────────────────────────────────────────────
+
+    • Все числа, существующие в игре, являются
+      строго степенями двойки:
+        2, 4, 8, 16, 32, 64, 128, …
+
+    • Других чисел в мире игры не существует.
+      Их нельзя создать, получить или показать.
+
+    ──────────────────────────────────────────────
+    2. ЦЕПОЧКА — ОСНОВНАЯ СУЩНОСТЬ
+    ──────────────────────────────────────────────
+    • Игра оперирует не отдельными числами,
+    а ЦЕПОЧКОЙ выбранных чисел.
+
+    • Цепочка — это упорядоченная история ходов.
+
+    • Первое число цепочки является ЯКОРЕМ:
+      — оно всегда участвует в сумме
+      — но не может само по себе завершить цепочку
+
+    • Каждое новое число проверяется
+      относительно предыдущего и всей цепочки.
+
+    ──────────────────────────────────────────────
+    3. ДОПУСТИМЫЙ ХОД
+    ──────────────────────────────────────────────
+
+    • Следующее число в цепочке может быть:
+        1) равно предыдущему числу
+        2) в два раза больше предыдущего числа
+        3) равно сумме всей цепочки,
+           ЕСЛИ выполняются условия:
+            • сумма является степенью двойки
+            • сумма не меньше последнего числа цепочки
+
+    • Если условия не выполнены — ход невозможен.
+
+    ──────────────────────────────────────────────
+    4. СУММА ЦЕПОЧКИ
+    ──────────────────────────────────────────────
+
+    • Сумма цепочки существует всегда.
+
+    • Когда сумма — степень двойки,
+      она становится допустимым числом хода.
+
+    • Сумма считается как сумма ВСЕХ чисел цепочки,
+      включая первое число.
+
+    • Сумма сама по себе не завершает цепочку.
+
+    ──────────────────────────────────────────────
+    5. ОТКАТ
+    ──────────────────────────────────────────────
+
+    • Откат возможен только назад по цепочке.
+
+    • История не переписывается.
+
+    ──────────────────────────────────────────────
+    6. НЕИЗМЕННОСТЬ
+    ──────────────────────────────────────────────
+
+    • Аксиомы не меняются. Меняется код.
+
+    • Аксиомы не балансируются.
+
+    • Аксиомы не упрощаются.
+
+    • Аксиомы не нарушаются временно.
+
+    ──────────────────────────────────────────────
+    7. ЗАВЕРШЕНИЕ ЦЕПОЧКИ
+    ──────────────────────────────────────────────
+
+    • Цепочка может быть ЗАВЕРШЕНА
+      ТОЛЬКО если выполняются одновременно:
+      1) сумма цепочки является степенью двойки
+      2) сумма цепочки СТРОГО больше
+        первого числа цепочки
+
+    • Первый блок НИКОГДА не может
+      завершить цепочку сам по себе,
+      независимо от своего значения.
+
+    ──────────────────────────────────────────────
+    8. СБРОС ЦЕПОЧКИ
+    ──────────────────────────────────────────────
+
+    • Если игрок завершает жест (отпускает цепочку),
+      но цепочка не удовлетворяет условиям завершения,
+      цепочка ПОЛНОСТЬЮ СБРАСЫВАЕТСЯ.
+
+    • Незавершённая цепочка не даёт результата.
+
+    ══════════════════════════════════════════════
+    КОНЕЦ AXIOMA
+    ══════════════════════════════════════════════
+    */
+
+    // ──────────────────────────────────────────
+    // AXIOMA → ПЕРВЫЙ ЖИВОЙ ОБЪЕКТ
+    // ─────────────────────────────────────────-
+
+    // Цепочка — это список выбранных чисел
+    const Chain = {
+      numbers: [],   // сюда будут складываться числа
+      sum: 0         // тут будет их сумма
+    };
+
+    // Функция: пересчитать сумму цепочки
+    function updateChainSum() {
+      let total = 0;
+
+      for (let i = 0; i < Chain.numbers.length; i++) {
+      total = total + Chain.numbers[i];
+      }
+
+     Chain.sum = total;
+    }
+
+    // 🔒 ЗАКОН МИРА: степень двойки
+    function isPowerOfTwo(n) {
+      return n > 0 && (n & (n - 1)) === 0;
+    }
+
+    // === I18N ===
+    const I18N = {
+      ua: {
+        app_title: "Lost Number — числова головоломка",
+        main_title: "Числова головоломка",
+        main_subtitle: "Спокійна головоломка з числами. Грайте у своєму темпі, без таймерів і поспіху.",
+        btn_continue: "▶ Продовжити",
+        btn_new_game: "🎮 Нова гра",
+        btn_settings: "⚙️ Налаштування",
+        btn_about: "ℹ️ Про гру",
+        btn_play_again: "🔄 Почати знову",
+        btn_back_to_menu: "🏠 Головне меню",
+        btn_save_settings: "💾 Зберегти",
+        btn_back: "← Назад",
+        btn_close_dice: "Закрити",
+        feature_1: "З шармом",
+        feature_2: "Поступове ускладнення",
+        feature_3: "Зберігання прогресу",
+        feature_4: "Для всієї родини",
+        header_text: "Lost Number — числова головоломка",
+        goal_label: "Ціль",
+        xp_label: "Очки",
+        settings_title: "Налаштування ⚙️",
+        settings_animations_label: "Анімації:",
+        settings_animations_on: "Увімкнені",
+        settings_animations_off: "Вимкнені",
+        settings_sound_label: "Звук:",
+        settings_sound_on: "Увімкнений",
+        settings_sound_off: "Вимкнений",
+        settings_language_label: "Мова інтерфейсу:",
+        settings_language_ua: "Українська",
+        settings_language_ru: "Русский",
+        settings_language_en: "English",
+        about_title: "Про гру ℹ️",
+        about_p1: "Lost Number — це спокійна логічна гра з числами.",
+        about_p2: "Об’єднуйте однакові та зростаючі числа дотиком, отримуйте більші значення та рухайтеся з рівня на рівень.",
+        about_p3: "Грайте так, як зручно саме вам.",
+        victory_title: "🎉 Вітаємо! 🎉",
+        victory_text: "Ви дійшли до фінального рівня цієї версії гри. Але завжди можна почати нову спробу 🙂",
+        level_reached_title: "Рівень {level} пройдено ✨",
+        level_reached_text: "Чудова комбінація. Рухаємося далі.",
+        level_stats_points: "Очки: {points}",
+        level_stats_carry: "Ми зберегли число {value} для наступного рівня.",
+        level_countdown: "Переходимо на рівень {level} через {seconds}…",
+        dice_title: "Кубик бонусів 🎲",
+        dice_spinning: "Крутиться…",
+        dice_choose_reward: "Оберіть бонус:",
+        dice_not_enough: "Потрібно трохи більше очок для використання кубика.",
+        dice_btn_ready: "Кубик бонусів",
+        dice_btn_not_ready: "Недостатньо очок",
+        confirm_new_game: "Почати нову гру? Поточний прогрес буде втрачено.",
+        save_done: "Прогрес збережено.",
+        chain_invalid: "Спробуйте іншу комбінацію.",
+        no_bonus: "Поки що немає такого бонусу.",
+        choose_cell_bonus: "Оберіть клітинку для бонусу.",
+        shuffle_done: "Поле перемішано.",
+        destroy_done: "Клітинку оновлено.",
+        explosion_done: "Групу клітинок оновлено.",
+        msg_random_1: "Гарний хід.",
+        msg_random_2: "Цікава комбінація.",
+        msg_random_3: "Продовжуйте в тому ж дусі.",
+        msg_random_4: "Поле поступово ускладнюється.",
+        msg_random_5: "Крок за кроком — і результат прийде.",
+        level_label: "Рівень",
+        bonus_destroy: "🔨 Розбити",
+        bonus_shuffle: "🔄 Перемішати",
+        bonus_explosion: "💥 Вибух 3×3",
+        dice_got: "Отримано бонус: {label}."
+      },
+      ru: {
+        app_title: "Lost Number — числовая головоломка",
+        main_title: "Числовая головоломка",
+        main_subtitle: "Спокойная игра с числами. Играйте в своём темпе, без спешки.",
+        btn_continue: "▶ Продолжить",
+        btn_new_game: "🎮 Новая игра",
+        btn_settings: "⚙️ Настройки",
+        btn_about: "ℹ️ Об игре",
+        btn_play_again: "🔄 Начать заново",
+        btn_back_to_menu: "🏠 Главное меню",
+        btn_save_settings: "💾 Сохранить",
+        btn_back: "← Назад",
+        btn_close_dice: "Закрыть",
+        feature_1: "Без усилий",
+        feature_2: "Плавное усложнение",
+        feature_3: "Сохранение прогресса",
+        feature_4: "Для всей семьи",
+        header_text: "Lost Number — числовая головоломка",
+        goal_label: "Цель",
+        xp_label: "Очки",
+        settings_title: "Настройки ⚙️",
+        settings_animations_label: "Анимации:",
+        settings_animations_on: "Включены",
+        settings_animations_off: "Выключены",
+        settings_sound_label: "Звук:",
+        settings_sound_on: "Включён",
+        settings_sound_off: "Выключен",
+        settings_language_label: "Язык интерфейса:",
+        settings_language_ua: "Українська",
+        settings_language_ru: "Русский",
+        settings_language_en: "English",
+        about_title: "Об игре ℹ️",
+        about_p1: "Lost Number — спокойная логическая игра с числами.",
+        about_p2: "Соединяйте одинаковые и растущие числа, получайте большие значения и переходите на новые уровни.",
+        about_p3: "Играйте так, как удобно именно вам.",
+        victory_title: "🎉 Поздравляем! 🎉",
+        victory_text: "Вы дошли до финального уровня этой версии игры. Но всегда можно начать заново 🙂",
+        level_reached_title: "Уровень {level} пройден ✨",
+        level_reached_text: "Отличная комбинация. Двигаемся дальше.",
+        level_stats_points: "Очки: {points}",
+        level_stats_carry: "Мы сохранили число {value} для следующего уровня.",
+        level_countdown: "Переходим на уровень {level} через {seconds}…",
+        dice_title: "Кубик бонусов 🎲",
+        dice_spinning: "Крутится…",
+        dice_choose_reward: "Выберите бонус:",
+        dice_not_enough: "Нужно немного больше очков, чтобы использовать кубик.",
+        dice_btn_ready: "Кубик бонусов",
+        dice_btn_not_ready: "Мало очков",
+        confirm_new_game: "Начать новую игру? Текущий прогресс будет потерян.",
+        save_done: "Прогресс сохранён.",
+        chain_invalid: "Попробуйте другую комбинацию.",
+        no_bonus: "Пока нет такого бонуса.",
+        choose_cell_bonus: "Выберите клетку для бонуса.",
+        shuffle_done: "Поле перемешано.",
+        destroy_done: "Клетка обновлена.",
+        explosion_done: "Группа клеток обновлена.",
+        msg_random_1: "Хороший ход.",
+        msg_random_2: "Интересная комбинация.",
+        msg_random_3: "Продолжайте в том же духе.",
+        msg_random_4: "Поле постепенно усложняется.",
+        msg_random_5: "Шаг за шагом — и всё получится.",
+        level_label: "Уровень",
+        bonus_destroy: "🔨 Разбить",
+        bonus_shuffle: "🔄 Перемешать",
+        bonus_explosion: "💥 Взрыв 3×3",
+        dice_got: "Получен бонус: {label}."
+      },
+      en: {
+        app_title: "Lost Number — number puzzle",
+        main_title: "Number puzzle",
+        main_subtitle: "A calm number game. Play at your own pace, with no timers and no pressure.",
+        btn_continue: "▶ Continue",
+        btn_new_game: "🎮 New game",
+        btn_settings: "⚙️ Settings",
+        btn_about: "ℹ️ About",
+        btn_play_again: "🔄 Play again",
+        btn_back_to_menu: "🏠 Main menu",
+        btn_save_settings: "💾 Save",
+        btn_back: "← Back",
+        btn_close_dice: "Close",
+        feature_1: "No timers",
+        feature_2: "Smooth difficulty",
+        feature_3: "Saves progress",
+        feature_4: "Family friendly",
+        header_text: "Lost Number — number puzzle",
+        goal_label: "Goal",
+        xp_label: "Score",
+        settings_title: "Settings ⚙️",
+        settings_animations_label: "Animations:",
+        settings_animations_on: "Enabled",
+        settings_animations_off: "Disabled",
+        settings_sound_label: "Sound:",
+        settings_sound_on: "On",
+        settings_sound_off: "Off",
+        settings_language_label: "Interface language:",
+        settings_language_ua: "Українська",
+        settings_language_ru: "Русский",
+        settings_language_en: "English",
+        about_title: "About the game ℹ️",
+        about_p1: "Lost Number is a calm logic game with numbers.",
+        about_p2: "Connect equal and growing numbers, get bigger values and move from level to level.",
+        about_p3: "No timers and no pressure — play the way that feels comfortable.",
+        victory_title: "🎉 Congratulations! 🎉",
+        victory_text: "You have reached the final level of this version. You can always start again 🙂",
+        level_reached_title: "Level {level} completed ✨",
+        level_reached_text: "Great combination. Let’s continue.",
+        level_stats_points: "Score: {points}",
+        level_stats_carry: "We kept number {value} for the next level.",
+        level_countdown: "Going to level {level} in {seconds}…",
+        dice_title: "Bonus dice 🎲",
+        dice_spinning: "Rolling…",
+        dice_choose_reward: "Choose a bonus:",
+        dice_not_enough: "You need a bit more points to use the dice.",
+        dice_btn_ready: "Bonus dice",
+        dice_btn_not_ready: "Not enough points",
+        confirm_new_game: "Start a new game? Current progress will be lost.",
+        save_done: "Progress saved.",
+        chain_invalid: "Try a different combination.",
+        no_bonus: "You don’t have this bonus yet.",
+        choose_cell_bonus: "Choose a cell for the bonus.",
+        shuffle_done: "The board has been shuffled.",
+        destroy_done: "Cell has been refreshed.",
+        explosion_done: "Group of cells has been refreshed.",
+        msg_random_1: "Nice move.",
+        msg_random_2: "Interesting combination.",
+        msg_random_3: "Keep going.",
+        msg_random_4: "The board is getting trickier.",
+        msg_random_5: "Step by step towards the result.",
+        level_label: "Level",
+        bonus_destroy: "🔨 Destroy",
+        bonus_shuffle: "🔄 Shuffle",
+        bonus_explosion: "💥 Explosion 3×3",
+        dice_got: "Bonus received: {label}."
+      }
+    };
+
+    const RANDOM_MESSAGES_KEYS = [
+      "msg_random_1",
+      "msg_random_2",
+      "msg_random_3",
+      "msg_random_4",
+      "msg_random_5"
+    ];
+
+    class LostNumberGame {
+      constructor() {
+        this.GRID_W = 5;
+        this.GRID_H = 8;
+
+        this.levels = this.generateLevels(40);
+        this.MAX_LEVEL = this.levels.length;
+
+        this.currentLevel = 0;
+        this.grid = [];
+        this.selected = [];
+        this.chainNumbers = [];
+        this.isDragging = false;
+        this.activeBonus = null;
+
+        this.xp = 0;
+        this.gameState = "playing";
+
+        this.animationEnabled = true;
+        this.lang = "ua";
+        this.soundEnabled = true;
+
+        this.bonusInventory = { destroy: 0, shuffle: 0, explosion: 0 };
+
+        this.pendingTransition = null;
+        this.carryNumberPending = null;
+        this.hasSave = false;
+
+        this.diceRollsToday = 0;
+        this.lastDiceReset = null;
+
+        // аудио
+        this.music = null;
+        this.tapSound = null;
+        this.musicInitialized = false;
+
+        this.createFloatingNumbers();
+        this.setupUI();
+        this.applyTranslations();
+        this.checkExistingSave();
+        this.showScreen("mainMenu");
+
+        document.addEventListener("contextmenu", e => e.preventDefault());
+      }
+
+      t(key) {
+        const pack = I18N[this.lang] || I18N["ua"];
+        return pack[key] || key;
+      }
+
+      formatTemplate(key, params) {
+        let text = this.t(key);
+        Object.keys(params || {}).forEach(k => {
+          text = text.replace(`{${k}}`, params[k]);
+        });
+        return text;
+      }
+
+      applyTranslations() {
+        // document title & html lang
+        document.documentElement.lang = (this.lang === "ua" ? "uk" : this.lang);
+        document.title = this.t("app_title");
+
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const key = el.getAttribute("data-i18n");
+          if (!key) return;
+          el.textContent = this.t(key);
+        });
+
+        const goalLabel = document.querySelector("[data-i18n='goal_label']");
+        if (goalLabel) goalLabel.textContent = this.t("goal_label");
+
+        const xpText = document.getElementById("xpText");
+        if (xpText) {
+          xpText.textContent = this.t("xp_label") + ": " + this.xp.toString();
+        }
+
+        const diceTitle = document.getElementById("diceTitle");
+        if (diceTitle) diceTitle.textContent = this.t("dice_title");
+
+        const animSel = document.getElementById("animationSelect");
+        if (animSel) animSel.value = this.animationEnabled ? "on" : "off";
+
+        const soundSel = document.getElementById("soundSelect");
+        if (soundSel) soundSel.value = this.soundEnabled ? "on" : "off";
+
+        const langSel = document.getElementById("languageSelect");
+        if (langSel) langSel.value = this.lang;
+
+        // бонусные кнопки подписи / title
+        const dBtn = document.getElementById("bonus-destroy");
+        const sBtn = document.getElementById("bonus-shuffle");
+        const eBtn = document.getElementById("bonus-explosion");
+        if (dBtn) {
+          dBtn.title = this.t("bonus_destroy");
+        }
+        if (sBtn) {
+          sBtn.title = this.t("bonus_shuffle");
+        }
+        if (eBtn) {
+          eBtn.title = this.t("bonus_explosion");
+        }
+
+        const headerText = document.getElementById("headerText");
+        if (headerText) headerText.textContent = this.t("header_text");
+      }
+
+      generateLevels(count) {
+        const levels = [];
+        let target = 64;
+        let baseNumbers = [2,4,8];
+
+        for (let i=0;i<count;i++) {
+          const numbers = [...baseNumbers];
+          const newNumbers = this.generateNewNumbers(target);
+
+          levels.push({ target, numbers, newNumbers });
+
+          target *= 2;
+          if (i%3===2 && baseNumbers.length<7) {
+            baseNumbers.push(baseNumbers[baseNumbers.length-1]*2);
+            return levels;
+          }
+        }
+      }
+
+      generateNewNumbers(target) {
+        const arr = [];
+        let num = target/8;
+        for (let i=0;i<8;i++) {
+          if (num <= target) {
+            arr.unshift(num);
+            num *= 2;
+          }
+        }
+        return arr;
+      }
+
+      createFloatingNumbers() {
+        const container = document.getElementById("floatingHearts");
+        const count = 14;
+        const symbols = ["2","4","8","16","32","64","128"];
+        for (let i=0;i<count;i++) {
+          const h = document.createElement("div");
+          h.className = "floating-heart";
+          h.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+          h.style.left = Math.random()*100 + "vw";
+          h.style.top  = Math.random()*100 + "vh";
+          h.style.animationDelay = Math.random()*7 + "s";
+          h.style.fontSize = (0.7+Math.random()*0.9)+"rem";
+          container.appendChild(h);
+        }
+      }
+
+      initAudio() {
+        if (this.musicInitialized) return;
+        this.musicInitialized = true;
+        try {
+          this.music = new Audio("audio/music/ambient.mp3");
+          this.music.loop = true;
+          this.music.volume = 0.35;
+        } catch(e) {
+          this.music = null;
+        }
+        try {
+          this.tapSound = new Audio("audio/sfx/tap.mp3");
+          this.tapSound.volume = 0.45;
+        } catch(e) {
+          this.tapSound = null;
+        }
+        this.updateSoundStateUI();
+      }
+
+      playTap() {
+        if (!this.soundEnabled || !this.tapSound) return;
+        try {
+          const clone = this.tapSound.cloneNode();
+          clone.volume = this.tapSound.volume;
+          clone.play().catch(()=>{});
+        } catch(e) {}
+      }
+
+      playMusicIfEnabled() {
+        if (!this.soundEnabled || !this.music) return;
+        try {
+          if (this.music.paused) {
+            this.music.play().catch(()=>{});
+          }
+        } catch(e) {}
+      }
+
+      updateSoundStateUI() {
+        const btn = document.getElementById("soundToggleBtn");
+        if (btn) {
+          btn.textContent = this.soundEnabled ? "🔊" : "🔇";
+        }
+        if (!this.musicInitialized) return;
+        if (this.soundEnabled) {
+          this.playMusicIfEnabled();
+        } else if (this.music && !this.music.paused) {
+          try { this.music.pause(); } catch(e) {}
+        }
+      }
+
+      setupUI() {
+        const continueBtn = document.getElementById("continueBtn");
+        const newGameBtn  = document.getElementById("newGameBtn");
+
+        continueBtn.addEventListener("click", () => {
+          this.playTap();
+          this.initAudio();
+          this.playMusicIfEnabled();
+          this.resumeGame();
+        });
+        newGameBtn.addEventListener("click", () => {
+          this.playTap();
+          this.initAudio();
+          this.playMusicIfEnabled();
+          if (this.hasSave) {
+            const ok = confirm(this.t("confirm_new_game"));
+            if (!ok) return;
+          }
+          localStorage.removeItem("lostNumberSave");
+          this.hasSave = false;
+          this.startNewGame();
+        });
+
+        document.getElementById("settingsBtn").addEventListener("click", () => {
+          this.playTap();
+          this.showScreen("settings");
+        });
+        document.getElementById("aboutBtn").addEventListener("click", () => {
+          this.playTap();
+          this.showScreen("about");
+        });
+        document.getElementById("homeBtn").addEventListener("click", () => {
+          this.playTap();
+          this.showScreen("mainMenu");
+        });
+        document.getElementById("saveBtn").addEventListener("click", () => {
+          this.playTap();
+          this.saveGameState();
+          this.showMessage(this.t("save_done"));
+        });
+
+        document.getElementById("backFromSettingsBtn").addEventListener("click", () => {
+          this.playTap();
+          this.showScreen("mainMenu");
+        });
+        document.getElementById("backFromAboutBtn").addEventListener("click", () => {
+          this.playTap();
+          this.showScreen("mainMenu");
+        });
+        document.getElementById("saveSettingsBtn").addEventListener("click", () => {
+          this.playTap();
+          this.animationEnabled = document.getElementById("animationSelect").value === "on";
+          this.soundEnabled = document.getElementById("soundSelect").value === "on";
+          this.lang = document.getElementById("languageSelect").value || "ua";
+          this.applyTranslations();
+          this.updateSoundStateUI();
+          this.saveGameState();
+          this.showScreen("mainMenu");
+        });
+
+        document.getElementById("soundToggleBtn").addEventListener("click", () => {
+          this.playTap();
+          this.soundEnabled = !this.soundEnabled;
+          const soundSel = document.getElementById("soundSelect");
+          if (soundSel) soundSel.value = this.soundEnabled ? "on" : "off";
+          this.updateSoundStateUI();
+          this.saveGameState();
+        });
+
+        document.getElementById("playAgainBtn").addEventListener("click", () => {
+          this.playTap();
+          this.hideVictory();
+          this.startNewGame();
+        });
+        document.getElementById("backToMenuBtn").addEventListener("click", () => {
+          this.playTap();
+          this.hideVictory();
+          this.showScreen("mainMenu");
+        });
+
+        document.getElementById("bonus-dice").addEventListener("click", () => {
+          this.playTap();
+          this.handleDice();
+        });
+        document.getElementById("diceCloseBtn").addEventListener("click", () => {
+          this.playTap();
+          this.closeDice();
+        });
+
+        document.getElementById("bonus-destroy").addEventListener("click", () => {
+          this.playTap();
+          this.activateBonus("destroy");
+        });
+        document.getElementById("bonus-shuffle").addEventListener("click", () => {
+          this.playTap();
+          this.activateBonus("shuffle");
+        });
+        document.getElementById("bonus-explosion").addEventListener("click", () => {
+          this.playTap();
+          this.activateBonus("explosion");
+        });
+
+        const grid = document.getElementById("grid");
+        grid.addEventListener("pointerdown", e => this.handlePointerDown(e));
+        grid.addEventListener("pointermove", e => this.handlePointerMove(e));
+        grid.addEventListener("pointerup", () => this.handlePointerUp());
+        grid.addEventListener("pointercancel", () => this.handlePointerUp());
+      }
+
+      checkExistingSave() {
+        const raw = localStorage.getItem("lostNumberSave");
+        const continueBtn = document.getElementById("continueBtn");
+
+        if (!raw) {
+          this.hasSave = false;
+          if (continueBtn) { continueBtn.disabled = true; continueBtn.style.opacity = "0.5"; }
+          return;
+        }
+        try {
+          const data = JSON.parse(raw);
+          if (!data || typeof data !== "object") throw new Error("bad");
+          this.restoreFromState(data);
+          this.hasSave = true;
+          if (continueBtn) { continueBtn.disabled = false; continueBtn.style.opacity = "1"; }
+        } catch (e) {
+          console.error("Bad save:", e);
+          this.hasSave = false;
+          if (continueBtn) { continueBtn.disabled = true; continueBtn.style.opacity = "0.5"; }
+        }
+      }
+
+      showScreen(name) {
+        document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
+        const screen = document.getElementById(name+"Screen");
+        if(screen) screen.classList.remove("hidden");
+      }
+
+      resumeGame() {
+        const raw = localStorage.getItem("lostNumberSave");
+        if (!raw) { this.startNewGame(); return; }
+        try {
+          const data = JSON.parse(raw);
+          if (!data || typeof data !== "object") throw new Error("bad");
+          this.restoreFromState(data);
+          this.showScreen("game");
+          this.render();
+        } catch (e) {
+          console.error("Resume fail, starting new:", e);
+          this.startNewGame();
+          this.showScreen("game");
+        }
+      }
+
+      startNewGame() {
+        this.currentLevel = 0;
+        this.xp = 0;
+        this.bonusInventory = { destroy:0, shuffle:0, explosion:0 };
+        this.pendingTransition = null;
+        this.carryNumberPending = null;
+        this.diceRollsToday = 0;
+        this.lastDiceReset = null;
+        this.initGame(0);
+        this.saveGameState();
+        this.showScreen("game");
+      }
+
+      restoreFromState(state) {
+        this.currentLevel = Math.min(state.currentLevel ?? 0, this.MAX_LEVEL-1);
+        this.xp = state.xp ?? 0;
+        this.bonusInventory = state.bonusInventory || {destroy:0,shuffle:0,explosion:0};
+        this.animationEnabled = state.animationEnabled !== false;
+        this.lang = state.lang || this.lang || "ua";
+        this.soundEnabled = state.soundEnabled !== false;
+        this.pendingTransition = state.pendingTransition || null;
+        this.diceRollsToday = state.diceRollsToday ?? 0;
+        this.lastDiceReset = state.lastDiceReset ?? null;
+
+        this.applyTranslations();
+        this.updateSoundStateUI();
+        this.checkDiceResetDaily();
+
+        const numbers = state.grid;
+        if (Array.isArray(numbers) && numbers.length === this.GRID_W) {
+          this.grid = [];
+          for (let x=0;x<this.GRID_W;x++) {
+            this.grid[x] = [];
+            for (let y=0;y<this.GRID_H;y++) {
+              const num = numbers[x]?.[y] ?? 2;
+              this.grid[x][y] = { number: num, merged:false };
+            }
+          }
+          if (this.pendingTransition && this.pendingTransition.active) {
+            this.currentLevel = Math.min(this.pendingTransition.nextLevel, this.MAX_LEVEL-1);
+            this.carryNumberPending = this.pendingTransition.carryNumber ?? null;
+            this.pendingTransition = null;
+            this.initGame(this.currentLevel);
+            this.saveGameState();
+          } else {
+            this.updateTargetInfo();
+            this.updateXPBar();
+            this.updateBonusButtons();
+            this.updateDiceButton();
+          }
+        } else {
+          this.initGame(this.currentLevel);
+          this.saveGameState();
+        }
+      }
+
+      initGame(levelIndex=0) {
+        this.currentLevel = levelIndex;
+        const level = this.levels[this.currentLevel];
+
+        this.selected = [];
+        this.chainNumbers = [];
+        this.gameState = "playing";
+        this.activeBonus = null;
+
+        this.grid = [];
+        const minBase = this.computeMinBaseForLevel(level);
+        const baseFiltered = level.numbers.filter(n=>n>=minBase);
+        const pool = baseFiltered.length ? baseFiltered : level.numbers;
+
+        for (let x=0;x<this.GRID_W;x++) {
+          this.grid[x] = [];
+          for (let y=0;y<this.GRID_H;y++) {
+            this.grid[x][y] = {
+              number: pool[Math.floor(Math.random()*pool.length)],
+              merged: false
+            };
+          }
+        }
+
+        let carryPos = null;
+        if (this.carryNumberPending != null) {
+          const val = this.carryNumberPending;
+          this.carryNumberPending = null;
+          const rx = Math.floor(Math.random()*this.GRID_W);
+          const ry = Math.floor(Math.random()*this.GRID_H);
+          this.grid[rx][ry].number = val;
+          this.grid[rx][ry].merged = false;
+          carryPos = {x:rx,y:ry};
+        }
+
+        this.updateTargetInfo();
+        this.updateXPBar();
+        this.updateBonusButtons();
+        this.updateDiceButton();
+        this.render();
+
+        if (carryPos) setTimeout(()=>this.animateCarryAppear(carryPos.x,carryPos.y), 50);
+      }
+
+      computeMinBaseForLevel(level) {
+        const t = level.target;
+        if (t <= 256) return 2;
+        if (t <= 1024) return 4;
+        if (t <= 4096) return 8;
+        if (t <= 16384) return 16;
+        if (t <= 65536) return 32;
+        return 64;
+      }
+
+      updateTargetInfo() {
+        const level = this.levels[this.currentLevel];
+        document.getElementById("targetValue").textContent = this.formatNumber(level.target);
+        document.getElementById("levelLabel").textContent = this.t("level_label") + " " + (this.currentLevel+1);
+      }
+
+      render() {
+        const gridDiv = document.getElementById("grid");
+        gridDiv.innerHTML = "";
+
+        for (let y=0;y<this.GRID_H;y++) {
+          for (let x=0;x<this.GRID_W;x++) {
+            const cellData = this.grid[x][y];
+
+            let num = cellData.number;
+            if (num == null) {
+              const level = this.levels[this.currentLevel];
+              const minBase = this.computeMinBaseForLevel(level);
+              const baseFiltered = level.numbers.filter(v => v >= minBase);
+              const pool = baseFiltered.length ? baseFiltered : level.numbers;
+              num = pool[Math.floor(Math.random()*pool.length)];
+              cellData.number = num;
+            }
+
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+            cell.dataset.number = num;
+
+            if (this.selected.some(s=>s.x===x && s.y===y)) cell.classList.add("selected");
+            if (cellData.merged) cell.classList.add("merged");
+
+            const inner = document.createElement("div");
+            inner.className = "cell-inner";
+            inner.textContent = this.formatNumber(num);
+            cell.appendChild(inner);
+
+            gridDiv.appendChild(cell);
+          }
+        }
+      }
+
+      animateCarryAppear(x,y) {
+        const gridDiv = document.getElementById("grid");
+        const cell = gridDiv.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+        if (!cell) return;
+        cell.classList.add("carry");
+        setTimeout(()=>cell.classList.remove("carry"), 500);
+      }
+
+      getCellFromPoint(clientX, clientY) {
+        const el = document.elementFromPoint(clientX, clientY);
+        if (!el) return null;
+        const cell = el.classList.contains("cell") ? el : el.closest(".cell");
+        if (!cell) return null;
+        return { x:parseInt(cell.dataset.x,10), y:parseInt(cell.dataset.y,10) };
+      }
+
+      handlePointerDown(e) {
+        if (this.gameState !== "playing") return;
+        const posCell = this.getCellFromPoint(e.clientX, e.clientY);
+        if (!posCell) return;
+
+        if (this.activeBonus === "destroy") { this.useDestroyBonus(posCell.x,posCell.y); return; }
+        if (this.activeBonus === "explosion") { this.useExplosionBonus(posCell.x,posCell.y); return; }
+
+        this.isDragging = true;
+        this.selected = [posCell];
+        this.chainNumbers = [this.grid[posCell.x][posCell.y].number];
+        this.updatePreviewBubble(this.getCurrentChainSum(),);
+        Chain.numbers = [...this.chainNumbers];
+        updateChainSum();
+        this.updatePreviewBubble(Chain.sum,);
+        this.render();
+      }
+
+      handlePointerMove(e) {
+        if (!this.isDragging || this.activeBonus) return;
+        e.preventDefault();
+
+        const posCell = this.getCellFromPoint(e.clientX, e.clientY);
+        if (!posCell) return;
+
+        this.updatePreviewBubble(this.getCurrentChainSum());
+
+        const len = this.selected.length;
+        if (len === 0) return;
+
+        // откат назад по цепочке
+        if (len >= 2) {
+          const prev = this.selected[len - 2];
+          if (prev.x === posCell.x && prev.y === posCell.y) {
+            this.selected.pop();
+            this.chainNumbers.pop();
+            Chain.numbers = [...this.chainNumbers];
+            updateChainSum();
+            this.updatePreviewBubble(Chain.sum);
+            this.render();
+            return;
+          }
+        }
+
+        // уже выбрана
+        if (this.selected.some(s => s.x === posCell.x && s.y === posCell.y)) return;
+
+        // не сосед
+        const last = this.selected[len - 1];
+        if (!this.isAdjacent(last, posCell)) return;
+
+        // --- АКСИОМНАЯ ЛОГИКА ---
+        const newNum = this.grid[posCell.x][posCell.y].number;
+        const L = this.chainNumbers[this.chainNumbers.length - 1];
+
+        // предполагаемая сумма, ЕСЛИ добавим newNum
+        const nextSum = Chain.sum + newNum;
+
+        const canMove =
+          newNum === L ||
+          newNum === L * 2 ||
+          (
+            newNum === nextSum &&
+            nextSum >= L &&
+            this.isPowerOfTwo(nextSum)
+          );
+
+        if (!canMove) return;
+
+        // добавляем
+        this.selected.push(posCell);
+        this.chainNumbers.push(newNum);
+
+        Chain.numbers = [...this.chainNumbers];
+        updateChainSum();
+
+        this.updatePreviewBubble(Chain.sum);
+        this.render();
+      }
+
+        const newNum = this.grid[posCell.x][posCell.y].number;
+        const L = this.chainNumbers[this.chainNumbers.length - 1];
+        const S = Chain.sum;
+
+        const canMove =
+        newNum === L ||
+        newNum === L * 2 ||
+        (
+         newNum === S &&
+        S >= L &&
+        isPowerOfTwo(S)
+        );
+
+        if (!canMove) return;
+
+          this.selected.push(posCell);
+          this.chainNumbers.push(newNum);
+
+          Chain.numbers = [...this.chainNumbers];
+          updateChainSum();
+
+          this.updatePreviewBubble(Chain.sum);
+          this.render();
+          }
+        }
+
+      handlePointerUp() {
+        if (!this.isDragging) return;
+        this.isDragging = false;
+        this.hidePreviewBubble();
+
+        if (this.selected.length >= 2) {
+          this.mergeChain();
+        } else {
+          this.selected = [];
+          this.chainNumbers = [];
+          this.render();
+          }
+      }
+
+      isAdjacent(a,b) {
+        return Math.abs(a.x-b.x) <= 1 && Math.abs(a.y-b.y) <= 1;
+      }
+
+      getCurrentChainSum() {
+        return this.chainNumbers.reduce((s, v) => s + v, 0);
+      }
+
+      isPowerOfTwo(num) {
+        return num > 0 && (num & (num - 1)) === 0;
+      }
+
+      isValidResultNumber(num, level) {
+        const minBase = this.computeMinBaseForLevel(level);
+        if (!this.isPowerOfTwo(num)) return false;
+        if (num < minBase) return false;
+        const maxAllowed = level.target * 2;
+        if (num > maxAllowed) return false;
+        return true;
+      }
+
+      baseXPByLen(len) {
+        if (len <= 1) return 0;
+        if (len === 2) return 4;
+        if (len === 3) return 8;
+        if (len === 4) return 12;
+        if (len === 5) return 18;
+        return 25;
+      }
+      levelXPMult() {
+        return 1 + (this.currentLevel+1)*0.06;
+      }
+      calculateXP(len) {
+        const base = this.baseXPByLen(len);
+        return Math.max(0, Math.round(base * this.levelXPMult()));
+      }
+
+      mergeChain() {
+        const level = this.levels[this.currentLevel];
+        const sum = Chain.sum;
+        const anchor = this.selected[this.selected.length-1];
+        const removedCells = this.selected.slice(0,-1);
+
+        if (!isPowerOfTwo(sum)) {
+          this.showMessage(this.t("chain_invalid"));
+          this.selected = [];
+          this.chainNumbers = [];
+          this.render();
+          return;
+        }
+
+        if (!this.isValidResultNumber(sum, level)) {
+          this.showMessage(this.t("chain_invalid"));
+          this.selected = [];
+          this.chainNumbers = [];
+          this.render();
+          return;
+        }
+
+        this.grid[anchor.x][anchor.y].number = sum;
+        this.grid[anchor.x][anchor.y].merged = true;
+        this.render();
+
+        this.animatePopping(removedCells, () => {
+          this.animateGravity(removedCells, () => {
+            this.applyLocalGravity(removedCells);
+
+            const xpEarned = this.calculateXP(this.selected.length);
+            this.xp += xpEarned;
+
+            this.selected = [];
+            this.chainNumbers = [];
+
+            this.updateXPBar();
+            this.updateBonusButtons();
+            this.updateDiceButton();
+            this.render();
+            this.saveGameState();
+            this.checkWin();
+            if (this.gameState === "playing") this.showRandomMessage();
+          });
+        });
+      }
+
+      animatePopping(cells, callback) {
+        if (!this.animationEnabled) { callback(); return; }
+        const gridDiv = document.getElementById("grid");
+        cells.forEach(s=>{
+          const cell = gridDiv.querySelector(`.cell[data-x="${s.x}"][data-y="${s.y}"]`);
+          if (cell) cell.classList.add("popping");
+        });
+        setTimeout(() => callback(), 270);
+      }
+
+      animateGravity(removedCells, callback) {
+        if (!this.animationEnabled) { callback(); return; }
+        const gridDiv = document.getElementById("grid");
+        const removedMap = {};
+        removedCells.forEach(c => {
+          if (!removedMap[c.x]) removedMap[c.x] = [];
+          removedMap[c.x].push(c.y);
+        });
+
+        for (let x=0;x<this.GRID_W;x++) {
+          const ys = removedMap[x] ? removedMap[x].slice().sort((a,b)=>a-b) : [];
+          if (!ys.length) continue;
+
+          for (let y=0;y<this.GRID_H;y++) {
+            const isRemoved = ys.includes(y);
+            if (isRemoved) continue;
+
+            let holesBelow = 0;
+            ys.forEach(ry => { if (ry > y) holesBelow++; });
+
+            if (holesBelow > 0) {
+              const cell = gridDiv.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+              if (cell) {
+                cell.style.transition = "transform 0.25s ease";
+                cell.style.transform = `translateY(${holesBelow*100}%)`;
+              }
+            }
+          }
+        }
+
+        setTimeout(() => {
+          const cells = gridDiv.querySelectorAll(".cell");
+          cells.forEach(c => { c.style.transition = ""; c.style.transform  = ""; });
+          callback();
+        }, 260);
+      }
+
+      applyLocalGravity(removedCells) {
+        const level = this.levels[this.currentLevel];
+        const minBase = this.computeMinBaseForLevel(level);
+        const baseFiltered = level.numbers.filter(n => n >= minBase);
+        const pool = baseFiltered.length ? baseFiltered : level.numbers;
+
+        const removedMap = {};
+        removedCells.forEach(c => {
+          if (!removedMap[c.x]) removedMap[c.x] = new Set();
+          removedMap[c.x].add(c.y);
+        });
+
+        for (let x = 0; x < this.GRID_W; x++) {
+          const survivors = [];
+          for (let y=0;y<this.GRID_H;y++) {
+            const isRemoved = removedMap[x]?.has(y);
+            if (!isRemoved) survivors.push(this.grid[x][y].number);
+          }
+
+          const totalCells = this.GRID_H;
+          const newCol = new Array(totalCells).fill(null);
+          let writeY = totalCells-1;
+
+          for (let i=survivors.length-1;i>=0;i--) {
+            if (writeY < 0) break;
+            newCol[writeY] = survivors[i];
+            writeY--;
+          }
+          while (writeY >= 0) {
+            newCol[writeY] = pool[Math.floor(Math.random()*pool.length)];
+            writeY--;
+          }
+
+          for (let y=0;y<this.GRID_H;y++) {
+            this.grid[x][y] = { number:newCol[y], merged:false };
+          }
+        }
+      }
+
+      updateXPBar() {
+        const bar = document.getElementById("xpBar");
+        const txt = document.getElementById("xpText");
+        bar.style.width = "100%";
+        txt.textContent = this.t("xp_label") + ": " + this.xp.toString();
+      }
+
+      getFreeDiceRollsForLevel() {
+        const lvl = this.currentLevel + 1;
+        if (lvl <= 10) return 3;
+        if (lvl <= 25) return 4;
+        return 5;
+      }
+
+      getDiceBaseCostForLevel() {
+        return 18 + (this.currentLevel + 1) * 4;
+      }
+
+      checkDiceResetDaily() {
+        const now = new Date();
+        const today = now.getFullYear() + "-" + (now.getMonth()+1) + "-" + now.getDate();
+
+        if (!this.lastDiceReset) {
+          this.lastDiceReset = today;
+          this.diceRollsToday = 0;
+          return;
+        }
+
+        if (this.lastDiceReset !== today) {
+          this.lastDiceReset = today;
+          this.diceRollsToday = 0;
+        }
+      }
+
+      getDiceCost() {
+        this.checkDiceResetDaily();
+
+        const base = this.getDiceBaseCostForLevel();
+        const freeRolls = this.getFreeDiceRollsForLevel();
+        const used = this.diceRollsToday || 0;
+
+        if (used < freeRolls) {
+          return base;
+        }
+
+        const extraRolls = used - freeRolls + 1;
+        const step = 5;
+        return base + extraRolls * step;
+      }
+
+      updateDiceButton() {
+        const btn = document.getElementById("bonus-dice");
+        const label = document.getElementById("diceCostLabel");
+        const cost = this.getDiceCost();
+        if (label) label.textContent = cost;
+        const enough = this.xp >= cost;
+        btn.disabled = !enough;
+        btn.style.opacity = enough ? "1" : "0.55";
+        if (!enough) btn.title = this.t("dice_btn_not_ready");
+        else btn.title = this.t("dice_btn_ready");
+      }
+
+      handleDice() {
+        const cost = this.getDiceCost();
+        if (this.xp < cost) {
+          this.showMessage(this.t("dice_not_enough"));
+          return;
+        }
+        this.openDice();
+        this.startDiceRoll(cost);
+      }
+
+      openDice() {
+        document.getElementById("diceChoices").innerHTML = "";
+        document.getElementById("diceInfo").textContent = this.t("dice_spinning");
+        document.getElementById("diceOverlay").classList.remove("hidden");
+        const roller = document.getElementById("diceRoller");
+        roller.classList.add("spin");
+      }
+      closeDice() {
+        document.getElementById("diceOverlay").classList.add("hidden");
+        const roller = document.getElementById("diceRoller");
+        roller.classList.remove("spin");
+      }
+
+      startDiceRoll(costAtMoment) {
+        setTimeout(() => {
+          const optionA = this.weightedRandomBonus();
+          const optionB = this.weightedRandomBonus();
+          const choices = document.getElementById("diceChoices");
+          const info = document.getElementById("diceInfo");
+          const roller = document.getElementById("diceRoller");
+          roller.classList.remove("spin");
+          info.textContent = this.t("dice_choose_reward");
+
+          const makeBtn = (type) => {
+            const b = document.createElement("button");
+            b.className = "dice-choice";
+            b.textContent = this.bonusLabel(type);
+            b.addEventListener("click", () => {
+              this.xp -= costAtMoment;
+              if (this.xp < 0) this.xp = 0;
+
+              this.diceRollsToday = (this.diceRollsToday || 0) + 1;
+
+              this.bonusInventory[type] = (this.bonusInventory[type]||0) + 1;
+
+              this.updateXPBar();
+              this.updateBonusButtons();
+              this.updateDiceButton();
+              this.saveGameState();
+              this.showMessage(this.formatTemplate("dice_got", {label: this.bonusLabel(type)}));
+              this.closeDice();
+            });
+            return b;
+          };
+
+          choices.innerHTML = "";
+          choices.appendChild(makeBtn(optionA));
+          choices.appendChild(makeBtn(optionB));
+        }, 1100);
+      }
+
+      bonusLabel(type) {
+        if (type === "explosion") return this.t("bonus_explosion");
+        if (type === "shuffle")   return this.t("bonus_shuffle");
+        return this.t("bonus_destroy");
+      }
+
+      weightedRandomBonus() {
+        const base = { destroy: 1.0, shuffle: 1.0, explosion: 0.45 };
+
+        const d = this.bonusInventory.destroy || 0;
+        const s = this.bonusInventory.shuffle || 0;
+
+        let w = { ...base };
+
+        const maxDS = Math.max(d, s, 1);
+        const minDS = Math.min(d, s);
+        const diffRatio = (maxDS - minDS) / maxDS;
+
+        if (diffRatio >= 0.30) {
+          const boost = Math.min(0.30, diffRatio);
+          if (d < s) w.destroy *= (1 + boost);
+          else if (s < d) w.shuffle *= (1 + boost);
+        }
+
+        const total = w.destroy + w.shuffle + w.explosion;
+        let r = Math.random() * total;
+        if ((r -= w.destroy) < 0)   return "destroy";
+        if ((r -= w.shuffle) < 0)   return "shuffle";
+        return "explosion";
+      }
+
+      activateBonus(type) {
+        if (this.activeBonus === type) {
+          this.activeBonus = null;
+          this.updateBonusButtons();
+          return;
+        }
+        if (this.bonusInventory[type] <= 0) {
+          this.showMessage(this.t("no_bonus"));
+          return;
+        }
+        if (type === "shuffle") {
+          this.bonusInventory.shuffle--;
+          this.animatedShuffleGrid();
+          this.updateBonusButtons();
+          this.saveGameState();
+          this.showMessage(this.t("shuffle_done"));
+          return;
+        }
+        this.activeBonus = type;
+        this.updateBonusButtons();
+        this.showMessage(this.t("choose_cell_bonus"));
+      }
+
+      animatedShuffleGrid() {
+        const gridDiv = document.getElementById("grid");
+        const cells = gridDiv.querySelectorAll(".cell");
+        cells.forEach(c => c.classList.add("shuffle-anim"));
+        setTimeout(() => {
+          this.shuffleGrid();
+          cells.forEach(c => c.classList.remove("shuffle-anim"));
+        }, 350);
+      }
+
+      shuffleGrid() {
+        const all = [];
+        for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) all.push(this.grid[x][y].number);
+        for (let i=all.length-1;i>0;i--) {
+          const j=Math.floor(Math.random()*(i+1));
+          [all[i],all[j]]=[all[j],all[i]];
+        }
+        let k=0;
+        for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) {
+          this.grid[x][y].number = all[k++]; this.grid[x][y].merged=false;
+        }
+        this.render();
+      }
+
+      useDestroyBonus(x,y) {
+        if (this.bonusInventory.destroy <= 0) {
+          this.showMessage(this.t("no_bonus"));
+          this.activeBonus = null; this.updateBonusButtons();
+          return;
+        }
+        this.bonusInventory.destroy--;
+
+        const removedCells = [{x,y}];
+
+        this.animatePopping(removedCells, () => {
+          this.animateGravity(removedCells, () => {
+            this.applyLocalGravity(removedCells);
+            this.activeBonus = null;
+            this.updateBonusButtons();
+            this.render();
+            this.saveGameState();
+            this.showMessage(this.t("destroy_done"));
+          });
+        });
+      }
+
+      useExplosionBonus(x,y) {
+        if (this.bonusInventory.explosion <= 0) {
+          this.showMessage(this.t("no_bonus"));
+          this.activeBonus = null; this.updateBonusButtons();
+          return;
+        }
+        this.bonusInventory.explosion--;
+
+        const removedCells = [];
+        for (let dx=-1;dx<=1;dx++) for (let dy=-1;dy<=1;dy++) {
+          const nx=x+dx, ny=y+dy;
+          if (nx>=0 && nx<this.GRID_W && ny>=0 && ny<this.GRID_H) {
+            removedCells.push({x:nx,y:ny});
+          }
+        }
+
+        this.animatePopping(removedCells, () => {
+          this.animateGravity(removedCells, () => {
+            this.applyLocalGravity(removedCells);
+            this.activeBonus = null;
+            this.updateBonusButtons();
+            this.render();
+            this.saveGameState();
+            this.showMessage(this.t("explosion_done"));
+          });
+        });
+      }
+
+      updateBonusButtons() {
+        const dBtn = document.getElementById("bonus-destroy");
+        const sBtn = document.getElementById("bonus-shuffle");
+        const eBtn = document.getElementById("bonus-explosion");
+        
+        const cD = document.getElementById("count-destroy");
+        const cS = document.getElementById("count-shuffle");
+        const cE = document.getElementById("count-explosion");
+
+        if (cD) cD.textContent = this.bonusInventory.destroy;
+        if (cS) cS.textContent = this.bonusInventory.shuffle;
+        if (cE) cE.textContent = this.bonusInventory.explosion;
+
+        dBtn.disabled = (this.bonusInventory.destroy <= 0 && this.activeBonus!=="destroy");
+        sBtn.disabled = (this.bonusInventory.shuffle <= 0 && this.activeBonus!=="shuffle");
+        eBtn.disabled = (this.bonusInventory.explosion <= 0 && this.activeBonus!=="explosion");
+
+        dBtn.classList.toggle("active", this.activeBonus==="destroy");
+        sBtn.classList.toggle("active", this.activeBonus==="shuffle");
+        eBtn.classList.toggle("active", this.activeBonus==="explosion");
+      }
+
+      getMaxNumberOnGrid() {
+        let max = 0;
+        for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) {
+          const v = this.grid[x][y].number;
+          if (v!=null && v>max) max=v;
+        }
+        return max;
+      }
+
+      checkWin() {
+        const level = this.levels[this.currentLevel];
+        for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) {
+          if (this.grid[x][y].number === level.target) {
+            this.gameState="win";
+            this.handleLevelComplete();
+            return;
+          }
+        }
+      }
+
+      handleLevelComplete() {
+        const oldXp = this.xp;
+        const maxNumber = this.getMaxNumberOnGrid();
+
+        this.xp = oldXp;
+        this.updateXPBar();
+        this.updateBonusButtons();
+        this.updateDiceButton();
+
+        const prevLevelIndex = this.currentLevel;
+        const prevLevelNumber = prevLevelIndex+1;
+        let nextLevelIndex = Math.min(prevLevelIndex+1, this.MAX_LEVEL-1);
+        const nextLevelNumber = nextLevelIndex+1;
+
+        this.pendingTransition = { active: true, nextLevel: nextLevelIndex, carryNumber: maxNumber };
+        this.saveGameState();
+
+        const overlay = document.getElementById("levelOverlay");
+        const title = document.getElementById("levelOverlayTitle");
+        const text  = document.getElementById("levelOverlayText");
+        const stats = document.getElementById("levelStats");
+        const countdown = document.getElementById("levelCountdown");
+
+        title.textContent = this.formatTemplate("level_reached_title", {level: prevLevelNumber});
+        text.textContent = this.t("level_reached_text");
+        let statsHtml = "";
+        statsHtml += this.formatTemplate("level_stats_points", {points: this.xp}) + "<br/>";
+        statsHtml += this.formatTemplate("level_stats_carry", {value: this.formatNumber(maxNumber)});
+        stats.innerHTML = statsHtml;
+
+        let seconds = 3;
+        countdown.textContent = this.formatTemplate("level_countdown", {level: nextLevelNumber, seconds});
+        overlay.classList.remove("hidden");
+
+        const timer = setInterval(()=>{
+          seconds--;
+          if (seconds <= 0) {
+            clearInterval(timer);
+            overlay.classList.add("hidden");
+            this.completeLevelTransition();
+          } else {
+            countdown.textContent = this.formatTemplate("level_countdown", {level: nextLevelNumber, seconds});
+          }
+        },1000);
+      }
+
+      completeLevelTransition() {
+        if (!this.pendingTransition || !this.pendingTransition.active) return;
+        const nextLevelIndex = this.pendingTransition.nextLevel;
+        const carry = this.pendingTransition.carryNumber ?? null;
+        this.pendingTransition = null;
+
+        if (nextLevelIndex >= this.MAX_LEVEL-1) {
+          this.currentLevel = this.MAX_LEVEL-1;
+          this.carryNumberPending = carry;
+          this.initGame(this.currentLevel);
+          this.saveGameState();
+          this.showVictory();
+        } else {
+          this.currentLevel = nextLevelIndex;
+          this.carryNumberPending = carry;
+          this.initGame(this.currentLevel);
+          this.saveGameState();
+          this.showRandomMessage();
+        }
+      }
+
+      showVictory() { document.getElementById("victoryOverlay").classList.remove("hidden"); }
+      hideVictory() { document.getElementById("victoryOverlay").classList.add("hidden"); }
+
+      showRandomMessage() {
+        const keys = RANDOM_MESSAGES_KEYS;
+        const key = keys[Math.floor(Math.random()*keys.length)];
+        this.showMessage(this.t(key));
+      }
+
+      showMessage(text) {
+        const container = document.querySelector("#gameScreen .grid-container");
+        if (!container) return;
+
+        const old = container.querySelector(".love-bubble");
+        if (old) old.remove();
+
+        const bubble = document.createElement("div");
+        bubble.className = "love-bubble";
+        const left = 15 + Math.random()*70;
+        const top  = 25 + Math.random()*50;
+        bubble.style.left = x + "px";
+        bubble.style.top  = y + "px";
+        bubble.textContent = this.formatNumber(sum);
+        bubble.style.opacity = "1";
+        bubble.style.opacity = "0";
+      }
+
+      updatePreviewBubble(sum) {
+        const bubble = document.getElementById("previewBubble");
+        if (!bubble) return;
+
+        bubble.textContent = this.formatNumber(sum);
+
+        // если нет выбранных клеток — прячем сразу
+        if (!this.selected || this.selected.length === 0) {
+          bubble.style.opacity = "0";
+          bubble.classList.remove("valid-sum");
+          return;
+        }
+
+        const first = this.chainNumbers[0];
+
+        // AXIOMA:
+        // сумма — степень двойки
+        // сумма строго больше первого числа
+        // цепочка минимум из 2 элементов
+        if (
+          this.chainNumbers.length >= 2 &&
+          this.isPowerOfTwo(sum) &&
+          sum > first
+        ) {
+          bubble.classList.add("valid-sum");
+        } else {
+          bubble.classList.remove("valid-sum");
+        }
+
+        const container = document.querySelector("#gameScreen .grid-container");
+        const grid = document.getElementById("grid");
+        if (!container || !grid) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const gridRect = grid.getBoundingClientRect();
+
+        const cellW = gridRect.width / this.GRID_W;
+        const cellH = gridRect.height / this.GRID_H;
+
+        const anchor = this.selected[this.selected.length - 1];
+
+        // центр клетки
+        const x =
+          (gridRect.left - containerRect.left) +
+          (anchor.x + 0.5) * cellW;
+
+        // над клеткой
+        const y =
+          (gridRect.top - containerRect.top) +
+          anchor.y * cellH -
+          cellH;
+
+        bubble.style.left = x + "px";
+        bubble.style.top = y + "px";
+        bubble.style.opacity = "1";
+      }
+
+      hidePreviewBubble() {
+        const bubble = document.getElementById("previewBubble");
+        if (!bubble) return;
+        bubble.style.opacity = "0";
+        bubble.classList.remove("valid-sum");
+      }
+
+      formatNumber(num) {
+        if (num >= 1_000_000) return (num/1_000_000).toFixed(1).replace(".0","")+"M";
+        if (num >= 10_000)    return (num/1_000).toFixed(0)+"K";
+        if (num >= 1_000)     return (num/1_000).toFixed(1).replace(".0","")+"K";
+        return String(num);
+      }
+
+      saveGameState() {
+        try {
+          const gridNumbers = [];
+          for (let x=0;x<this.GRID_W;x++) {
+            gridNumbers[x] = [];
+            for (let y=0;y<this.GRID_H;y++) {
+              gridNumbers[x][y] = this.grid[x][y].number;
+            }
+          }
+          const state = {
+            version: 5,
+            currentLevel: this.currentLevel,
+            xp: this.xp,
+            grid: gridNumbers,
+            bonusInventory: this.bonusInventory,
+            animationEnabled: this.animationEnabled,
+            lang: this.lang,
+            soundEnabled: this.soundEnabled,
+            pendingTransition: this.pendingTransition,
+            diceRollsToday: this.diceRollsToday,
+            lastDiceReset: this.lastDiceReset
+          };
+          localStorage.setItem("lostNumberSave", JSON.stringify(state));
+          this.hasSave = true;
+
+          const continueBtn = document.getElementById("continueBtn");
+          if (continueBtn) { continueBtn.disabled = false; continueBtn.style.opacity = "1"; }
+        } catch (e) { console.error("Save error:", e); }
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      new LostNumberGame();
+    });
+  </script>
+</body>
+</html>
