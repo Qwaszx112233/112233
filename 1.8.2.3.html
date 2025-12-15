@@ -1596,14 +1596,26 @@
         this.isDragging = false;
         this.hidePreviewBubble();
 
-        if (this.selected.length >= 2) {
+        const sum = this.getCurrentChainSum();
+        const first = this.chainNumbers[0];
+
+        const canFinish =
+          this.chainNumbers.length >= 2 &&
+          this.isPowerOfTwo(sum) &&
+          sum > first;
+
+        if (canFinish) {
           this.mergeChain();
         } else {
+        // AXIOMA: незавершённая цепочка — ПОЛНЫЙ СБРОС
           this.selected = [];
           this.chainNumbers = [];
+          Chain.numbers = [];
+          Chain.sum = 0;
           this.render();
-          }
+        }
       }
+
 
       isAdjacent(a,b) {
         return Math.abs(a.x-b.x) <= 1 && Math.abs(a.y-b.y) <= 1;
