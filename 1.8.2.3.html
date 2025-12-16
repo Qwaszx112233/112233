@@ -1690,15 +1690,35 @@
           this.mergeChain();
         } else {
         // AXIOMA: незавершённая цепочка — ПОЛНЫЙ СБРОС
-          this.selected = [];
-          this.chainNumbers = [];
-          Chain.numbers = [];
-          Chain.sum = 0;
-          this.render();
+        this.resetChain("invalid");  
         }
       }
 
+      resetChain(reason = null) {
+        this.isDragging = false;
 
+        this.selected = [];
+        this.chainNumbers = [];
+
+        Chain.numbers = [];
+        Chain.sum = 0;
+
+        this.hidePreviewBubble();
+
+        // убрать визуальное выделение
+        const gridDiv = document.getElementById("grid");
+        if (gridDiv) {
+          gridDiv.querySelectorAll(".cell.selected")
+            .forEach(c => c.classList.remove("selected"));
+        }
+
+        if (reason === "invalid") {
+          this.showMessage(this.t("chain_invalid"));
+        }
+
+        this.render();
+      }
+      
       isAdjacent(a,b) {
         return Math.abs(a.x-b.x) <= 1 && Math.abs(a.y-b.y) <= 1;
       }
@@ -1743,18 +1763,12 @@
         const removedCells = this.selected.slice(0,-1);
 
         if (!isPowerOfTwo(sum)) {
-          this.showMessage(this.t("chain_invalid"));
-          this.selected = [];
-          this.chainNumbers = [];
-          this.render();
+          this.resetChain("invalid");
           return;
         }
 
         if (!this.isValidResultNumber(sum, level)) {
-          this.showMessage(this.t("chain_invalid"));
-          this.selected = [];
-          this.chainNumbers = [];
-          this.render();
+          this.resetChain("invalid");
           return;
         }
 
