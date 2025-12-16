@@ -1759,20 +1759,26 @@
       mergeChain() {
         const level = this.levels[this.currentLevel];
         const sum = Chain.sum;
-        const anchor = this.selected[this.selected.length-1];
-        const removedCells = this.selected.slice(0,-1);
-
+        
         if (!isPowerOfTwo(sum)) {
           this.resetChain("invalid");
           return;
         }
 
-        if (!this.isValidResultNumber(sum, level)) {
+        const target = level.target;
+        const isLevelComplete = sum >= target;
+        const resultNumber = isLevelComplete ? target : sum;
+        const surplus = isLevelComplete ? Math.max(0, sum - target) : 0;
+
+        if (!this.isValidResultNumber(resultNumber, level)) {
           this.resetChain("invalid");
           return;
         }
 
-        this.grid[anchor.x][anchor.y].number = sum;
+        const anchor = this.selected[this.selected.length - 1];
+        const removedCells = this.selected.slice(0, -1);
+
+        this.grid[anchor.x][anchor.y].number = resultNumber;
         this.grid[anchor.x][anchor.y].merged = true;
         this.render();
 
@@ -1782,6 +1788,9 @@
 
             const xpEarned = this.calculateXP(this.selected.length);
             this.xp += xpEarned;
+            if (surplus > 0) {
+              this.xp += surplus;
+            }
 
             this.selected = [];
             this.chainNumbers = [];
@@ -1792,9 +1801,18 @@
             this.render();
             this.saveGameState();
             this.checkWin();
-            if (this.gameState === "playing") this.showRandomMessage();
+            if (this.gameState === "playing") {
+              this.showRandomMessage();
+            }
           });
         });
+      }
+
+      checkWin() {
+        const level = this.levels[this.currentLevel];
+        if (Chain.sum >= level.target) {
+          this.completeLevel();
+        }
       }
 
       animatePopping(cells, callback) {
