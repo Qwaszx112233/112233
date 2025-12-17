@@ -2196,7 +2196,8 @@
 
       handleLevelComplete() {
         const oldXp = this.xp;
-        const maxNumber = this.getMaxNumberOnGrid();
+        const level = this.levels[this.currentLevel];
+        const carryNumber = level.target;
 
         this.xp = oldXp;
         this.updateXPBar();
@@ -2205,10 +2206,10 @@
 
         const prevLevelIndex = this.currentLevel;
         const prevLevelNumber = prevLevelIndex+1;
-        let nextLevelIndex = Math.min(prevLevelIndex+1, this.MAX_LEVEL-1);
+        const nextLevelIndex = Math.min(prevLevelIndex + 1, this.MAX_LEVEL-1);
         const nextLevelNumber = nextLevelIndex+1;
 
-        this.pendingTransition = { active: true, nextLevel: nextLevelIndex, carryNumber: maxNumber };
+        this.pendingTransition = { active: true, nextLevel: nextLevelIndex, carryNumber: carryNumber };
         this.saveGameState();
 
         const overlay = document.getElementById("levelOverlay");
@@ -2221,7 +2222,7 @@
         text.textContent = this.t("level_reached_text");
         let statsHtml = "";
         statsHtml += this.formatTemplate("level_stats_points", {points: this.xp}) + "<br/>";
-        statsHtml += this.formatTemplate("level_stats_carry", {value: this.formatNumber(maxNumber)});
+        statsHtml += this.formatTemplate("level_stats_carry", {value: this.formatNumber(carryNumber)}) + "<br/>";
         stats.innerHTML = statsHtml;
 
         let seconds = 3;
@@ -2283,7 +2284,7 @@
         const top  = 25 + Math.random()*50;
         bubble.style.left = left + "px";
         bubble.style.top  = top + "px";
-        bubble.textContent = this.formatNumber(sum);
+        bubble.textContent = text;
         bubble.style.opacity = "1";
         bubble.style.opacity = "0";
       }
@@ -2353,9 +2354,27 @@
       }
 
       formatNumber(num) {
-        if (num >= 1_000_000) return (num/1_000_000).toFixed(1).replace(".0","")+"M";
-        if (num >= 10_000)    return (num/1_000).toFixed(0)+"K";
-        if (num >= 1_000)     return (num/1_000).toFixed(1).replace(".0","")+"K";
+        if (num < 1024) return String(num);
+
+        const UNITS = [
+          { value: 1 << 40, suffix: "T" },
+          { value: 1 << 30, suffix: "B" },
+          { value: 1 << 20, suffix: "M" },
+          { value: 1 << 10, suffix: "K" }
+        ];
+
+        for (const u of UNITS) {
+          if (num >= u.value) {
+            const v = num / u.value;
+
+            // AXIOMA: показываем ТОЛЬКО целые степени двойки
+            if ((v & (v - 1)) === 0) {
+              return v + u.suffix;
+            }
+          }
+        }
+
+        // fallback — полное число
         return String(num);
       }
 
