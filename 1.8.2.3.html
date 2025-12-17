@@ -1366,15 +1366,6 @@
           this.playTap();
           this.showScreen("about");
         });
-        document.getElementById("homeBtn").addEventListener("click", () => {
-          this.playTap();
-          this.showScreen("mainMenu");
-        });
-        document.getElementById("saveBtn").addEventListener("click", () => {
-          this.playTap();
-          this.saveGameState();
-          this.showMessage(this.t("save_done"));
-        });
 
         document.getElementById("backFromSettingsBtn").addEventListener("click", () => {
           this.playTap();
@@ -1393,15 +1384,6 @@
           this.updateSoundStateUI();
           this.saveGameState();
           this.showScreen("mainMenu");
-        });
-
-        document.getElementById("soundToggleBtn").addEventListener("click", () => {
-          this.playTap();
-          this.soundEnabled = !this.soundEnabled;
-          const soundSel = document.getElementById("soundSelect");
-          if (soundSel) soundSel.value = this.soundEnabled ? "on" : "off";
-          this.updateSoundStateUI();
-          this.saveGameState();
         });
 
         document.getElementById("playAgainBtn").addEventListener("click", () => {
