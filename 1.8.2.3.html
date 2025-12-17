@@ -1481,28 +1481,58 @@
       }
 
       showScreen(name) {
+        // 🔥 ПОЛНЫЙ СБРОС ИНТЕРАКТИВА
+        this.isDragging = false;
+        this.activeBonus = null;
+        this.selected = [];
+        this.chainNumbers = [];
+
+        Chain.numbers = [];
+        Chain.sum = 0;
+
+        this.hidePreviewBubble();
+
         document.querySelectorAll(".screen").forEach(screen => {
           screen.classList.add("hidden");
         });
 
         const target = document.getElementById(name + "Screen");
-        if (target) {
-          target.classList.remove("hidden");
-        }
+        if (target) target.classList.remove("hidden");
       }
-
+      
       resumeGame() {
         const raw = localStorage.getItem("lostNumberSave");
-        if (!raw) { this.startNewGame(); return; }
+
+        // 🔥 ЖЁСТКИЙ СБРОС СОСТОЯНИЙ
+        this.isDragging = false;
+        this.activeBonus = null;
+        this.selected = [];
+        this.chainNumbers = [];
+
+        Chain.numbers = [];
+        Chain.sum = 0;
+
+        if (!raw) {
+          this.startNewGame();
+          this.gameState = "playing"; // 🔑 КЛЮЧ
+          this.showScreen("game");
+          return;
+        }
+
         try {
           const data = JSON.parse(raw);
           if (!data || typeof data !== "object") throw new Error("bad");
+
           this.restoreFromState(data);
+
+          this.gameState = "playing"; // 🔑 ВОТ ОН
           this.showScreen("game");
           this.render();
+
         } catch (e) {
           console.error("Resume fail, starting new:", e);
           this.startNewGame();
+          this.gameState = "playing"; // 🔑 И ТУТ ТОЖЕ
           this.showScreen("game");
         }
       }
