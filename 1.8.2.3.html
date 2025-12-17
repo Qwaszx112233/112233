@@ -1488,9 +1488,14 @@
       }
 
       showScreen(name) {
-        document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
-        const screen = document.getElementById(name+"Screen");
-        if(screen) screen.classList.remove("hidden");
+        document.querySelectorAll(".screen").forEach(screen => {
+          screen.classList.add("hidden");
+        });
+
+        const target = document.getElementById(name + "Screen");
+        if (target) {
+          target.classList.remove("hidden");
+        }
       }
 
       resumeGame() {
