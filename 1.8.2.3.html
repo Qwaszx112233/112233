@@ -491,6 +491,10 @@
       <div class="level-text" id="levelOverlayText"></div>
       <div class="level-stats" id="levelStats"></div>
       <div class="level-countdown" id="levelCountdown"></div>
+      <div class="level-buttons">
+        <button id="levelMenuBtn">Головне меню</button>
+        <button id="levelNextBtn">Наступний рівень</button>
+      </div>
     </div>
   </div>
 
@@ -1293,6 +1297,16 @@
           localStorage.removeItem("lostNumberSave");
           this.hasSave = false;
           this.startNewGame();
+        });
+
+        document.getElementById("levelNextBtn")?.addEventListener("click", () => {
+          document.getElementById("levelOverlay").classList.add("hidden");
+          this.completeLevelTransition();
+        });
+
+        document.getElementById("levelMenuBtn")?.addEventListener("click", () => {
+          this.saveGameState();
+          this.showMainMenu();
         });
 
         document.getElementById("settingsBtn").addEventListener("click", () => {
@@ -2217,28 +2231,15 @@
         const text  = document.getElementById("levelOverlayText");
         const stats = document.getElementById("levelStats");
         const countdown = document.getElementById("levelCountdown");
+        const power = Math.log2(level.target);
 
-        title.textContent = this.formatTemplate("level_reached_title", {level: prevLevelNumber});
-        text.textContent = this.t("level_reached_text");
+        title.textContent = `Рівень ${prevLevelNumber} пройдено`;
+        text.innerHTML = `Вивчено нове число:<br>` + `<b>2<sup>${power}</sup> = ${level.target}</b>`;
         let statsHtml = "";
         statsHtml += this.formatTemplate("level_stats_points", {points: this.xp}) + "<br/>";
-        statsHtml += this.formatTemplate("level_stats_carry", {value: this.formatNumber(carryNumber)}) + "<br/>";
+        statsHtml += `Переносимо далі:<br><b>${this.formatNumber(carryNumber)}</b>`;
         stats.innerHTML = statsHtml;
-
-        let seconds = 3;
-        countdown.textContent = this.formatTemplate("level_countdown", {level: nextLevelNumber, seconds});
         overlay.classList.remove("hidden");
-
-        const timer = setInterval(()=>{
-          seconds--;
-          if (seconds <= 0) {
-            clearInterval(timer);
-            overlay.classList.add("hidden");
-            this.completeLevelTransition();
-          } else {
-            countdown.textContent = this.formatTemplate("level_countdown", {level: nextLevelNumber, seconds});
-          }
-        },1000);
       }
 
       completeLevelTransition() {
