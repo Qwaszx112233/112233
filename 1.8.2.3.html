@@ -1150,6 +1150,26 @@
 
         document.addEventListener("contextmenu", e => e.preventDefault());
       }
+      
+      scheduleRender() {
+        if (this._renderScheduled) return;
+        this._renderScheduled = true;
+
+        requestAnimationFrame(() => {
+          this._renderScheduled = false;
+          this.render();
+        });
+      }
+
+      scheduleSave() {
+        if (this._saveScheduled) return;
+        this._saveScheduled = true;
+
+        setTimeout(() => {
+          this._saveScheduled = false;
+          this.saveGameState();
+        }, 0);
+      }
 
       t(key) {
         const pack = I18N[this.lang] || I18N["ua"];
@@ -1409,10 +1429,13 @@
         // === Footer buttons ===
         document.getElementById("footerHomeBtn")?.addEventListener("click", () => {
           this.playTap();
-          this.saveGameState();
+
           this.gameState = "menu";
           this.showScreen("mainMenu");
+
+          this.scheduleSave();
         });
+
 
         document.getElementById("footerSoundBtn")?.addEventListener("click", () => {
           this.playTap();
@@ -1423,9 +1446,10 @@
 
         document.getElementById("footerSaveBtn")?.addEventListener("click", () => {
           this.playTap();
-          this.saveGameState();
-          this.showMessage(this.t("game_saved") || "Збережено");
+          this.scheduleSave();
+          this.showMessage(this.t("save_done") || "Збережено");
         });
+
 
         const grid = document.getElementById("grid");
         grid.addEventListener("pointerdown", e => this.handlePointerDown(e));
@@ -1772,8 +1796,7 @@
 
         if (reason === "invalid") {
           this.showMessage(this.t("chain_invalid"));
-        }
-
+        }       
         this.render();
       }
       
@@ -1856,8 +1879,8 @@
             this.updateXPBar();
             this.updateBonusButtons();
             this.updateDiceButton();
-            this.render();
-            this.saveGameState();
+            this.scheduleRender();
+            this.scheduleSave();
             this.checkWin();
             if (this.gameState === "playing") {
               this.showRandomMessage();
@@ -2175,8 +2198,8 @@
             this.applyLocalGravity(removedCells);
             this.activeBonus = null;
             this.updateBonusButtons();
-            this.render();
-            this.saveGameState();
+            this.scheduleRender();
+            this.scheduleSave();
             this.showMessage(this.t("destroy_done"));
           });
         });
@@ -2203,8 +2226,8 @@
             this.applyLocalGravity(removedCells);
             this.activeBonus = null;
             this.updateBonusButtons();
-            this.render();
-            this.saveGameState();
+            this.scheduleRender();
+            this.scheduleSave();
             this.showMessage(this.t("explosion_done"));
           });
         });
