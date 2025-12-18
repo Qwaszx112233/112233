@@ -245,6 +245,7 @@
       gap:6px;
       flex-wrap:nowrap;
     }
+
     .bonus-btn {
       min-width:40px;
       padding:6px 6px;
@@ -375,21 +376,72 @@
 
     .victory-overlay,
     .level-overlay,
+
     .dice-overlay {
-      position:fixed; inset:0; background:rgba(255,245,247,0.96);
-      display:flex; align-items:center; justify-content:center; z-index:20;
+      position:fixed;
+      inset:0;
+      background:rgba(255,245,247,0.96);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:20;
     }
+
+    /* === WHEEL OF FORTUNE === */
+    .wheel-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,245,247,0.96);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+    .wheel-overlay.hidden { display: none; }
+
+    .wheel-content {
+      background: #fff;
+      border-radius: 20px;
+      padding: 22px 18px;
+      box-shadow: 0 18px 40px rgba(233,30,99,0.35);
+      text-align: center;
+      max-width: 92%;
+    }
+
+    .wheel-title {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+
+    .wheel-center-btn {
+      margin-top: 10px;
+    }
+
+    .wheel-info {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+
     .victory-overlay.hidden,
     .level-overlay.hidden,
     .dice-overlay.hidden {
       display:none;
     }
+
     .victory-content,
     .level-content,
     .dice-content {
-      background:#fff; border-radius:20px; padding:22px 18px;
-      box-shadow:0 18px 40px rgba(233,30,99,0.35); text-align:center; max-width:92%;
+      background:#fff;
+      border-radius:20px;
+      padding:22px 18px;
+      box-shadow:0 18px 40px rgba(233,30,99,0.35);
+      text-align:center;
+      max-width:92%;
     }
+
     .level-title, .victory-title { font-size:1.5rem; color:var(--primary-color); margin-bottom:8px; font-weight:900; }
     .level-text, .victory-text { font-size:0.95rem; margin-bottom:12px; }
     .level-stats { font-size:0.85rem; text-align:left; margin:0 auto 10px; max-width:260px; line-height:1.4; }
@@ -537,14 +589,17 @@
     </div>
   </div>
 
-  <div class="dice-overlay hidden" id="diceOverlay">
-    <div class="dice-content">
-      <div class="dice-title" id="diceTitle">Кубик бонусів 🎲</div>
-      <div class="dice-roller" id="diceRoller">🎲</div>
-      <div id="diceInfo" style="margin-bottom:8px; font-weight:700;"></div>
-      <div class="dice-choices" id="diceChoices"></div>
+  <!-- 🌀 Колесо фортуни -->
+  <div class="wheel-overlay hidden" id="wheelOverlay">
+    <div class="wheel-content">
+      <div class="wheel-title" id="wheelTitle">Колесо фортуни 🌀</div>
+      <canvas id="fortuneWheel" width="280" height="280"></canvas>
+      <div class="wheel-center-btn">
+        <button id="spinWheelBtn" class="menu-btn">🎯 Обернути</button>
+      </div>
+      <div id="wheelInfo" class="wheel-info"></div>
       <div class="menu-buttons" style="margin-top:10px;">
-        <button class="menu-btn secondary dice-close" id="diceCloseBtn" data-i18n="btn_close_dice">Закрити</button>
+        <button class="menu-btn secondary" id="wheelCloseBtn">Закрити</button>
       </div>
     </div>
   </div>
@@ -585,6 +640,9 @@
 
     <div class="bonuses">
       <div class="bonuses-left">
+        <button class="bonus-btn" id="bonus-wheel" title="Колесо фортуни">
+          🌀
+        </button>
         <button class="bonus-btn" id="bonus-explosion" title="Вибух 3×3">
           💥 <span class="bonus-count" id="count-explosion">0</span>
         </button>
@@ -595,10 +653,7 @@
           🔨 <span class="bonus-count" id="count-destroy">0</span>
         </button>
       </div>
-      <button class="bonus-btn" id="bonus-dice" title="Кубик бонусів">
-        🎲 <span class="dice-btn-label">(<span id="diceCostLabel">—</span>)</span>
-      </button>
-    </div>
+    </div>  
   
     <div class="game-content">
       <div class="grid-container">
@@ -1404,13 +1459,19 @@
           this.showScreen("mainMenu");
         });
 
-        document.getElementById("bonus-dice").addEventListener("click", () => {
+        document.getElementById("bonus-wheel").addEventListener("click", () => {
           this.playTap();
-          this.handleDice();
+          this.handleWheel();
         });
-        document.getElementById("diceCloseBtn").addEventListener("click", () => {
+
+        document.getElementById("wheelCloseBtn").addEventListener("click", () => {
           this.playTap();
-          this.closeDice();
+          this.closeWheel();
+        });
+
+        document.getElementById("spinWheelBtn").addEventListener("click", () => {
+          this.playTap();
+          this.spinWheel();
         });
 
         document.getElementById("bonus-destroy").addEventListener("click", () => {
@@ -2474,6 +2535,135 @@
 
         // fallback — полное число
         return String(num);
+      }
+
+      // 🌀 === КОЛЕСО ФОРТУНИ ===
+      handleWheel() {
+        const cost = 25; // базова вартість XP
+        if (this.xp < cost) {
+          this.showMessage(this.t("dice_not_enough"));
+          return;
+        }
+        this.openWheel();
+      }
+
+      openWheel() {
+        const overlay = document.getElementById("wheelOverlay");
+        if (!overlay) return;
+        overlay.classList.remove("hidden");
+        this.drawWheel();
+        document.getElementById("wheelInfo").textContent = "";
+      }
+
+      closeWheel() {
+        document.getElementById("wheelOverlay").classList.add("hidden");
+      }
+
+      drawWheel() {
+        const canvas = document.getElementById("fortuneWheel");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const size = canvas.width;
+        const radius = size / 2;
+        const sectors = 8;
+        const colors = ["#ffd6bf", "#ffe6aa", "#d8ffd2", "#d5f1ff", "#f0d5ff", "#f6f0b8", "#cfe9ff", "#ffe1c4"];
+        const labels = ["XP+", "XP−", "💥", "🔄", "🔨", "×2 XP", "🎁", "💣"];
+
+        ctx.clearRect(0,0,size,size);
+        for (let i=0;i<sectors;i++) {
+          const angle = (Math.PI*2/sectors)*i;
+          ctx.beginPath();
+          ctx.moveTo(radius,radius);
+          ctx.arc(radius,radius,radius,angle,angle+Math.PI*2/sectors);
+          ctx.closePath();
+          ctx.fillStyle = colors[i % colors.length];
+          ctx.fill();
+          ctx.save();
+          ctx.translate(radius, radius);
+          ctx.rotate(angle + Math.PI/sectors);
+          ctx.textAlign = "right";
+          ctx.fillStyle = "#880e4f";
+          ctx.font = "bold 14px system-ui";
+          ctx.fillText(labels[i], radius - 10, 5);
+          ctx.restore();
+        }
+      }
+
+      spinWheel() {
+        const wheel = document.getElementById("fortuneWheel");
+        const info = document.getElementById("wheelInfo");
+        const cost = 25;
+        if (this.xp < cost) {
+          info.textContent = this.t("dice_not_enough");
+          return;
+        }
+        this.xp -= cost;
+        this.updateXPBar();
+        this.saveGameState();
+
+        let rotation = 0;
+        const target = 360 * 5 + Math.floor(Math.random() * 360);
+        const step = (target - rotation) / 60;
+        const ctx = wheel.getContext("2d");
+
+        const spinInterval = setInterval(() => {
+          rotation += step;
+          ctx.save();
+          ctx.clearRect(0,0,wheel.width,wheel.height);
+          ctx.translate(wheel.width/2, wheel.height/2);
+          ctx.rotate((rotation*Math.PI)/180);
+          ctx.translate(-wheel.width/2, -wheel.height/2);
+          this.drawWheel();
+          ctx.restore();
+
+          if (rotation >= target) {
+            clearInterval(spinInterval);
+            const sector = Math.floor(((target % 360) / 360) * 8);
+            const reward = ["XP+", "XP−", "💥", "🔄", "🔨", "×2 XP", "🎁", "💣"][sector];
+            info.textContent = "Результат: " + reward;
+            this.applyWheelReward(reward);
+          }
+        }, 30);
+      }
+
+      applyWheelReward(reward) {
+        switch (reward) {
+          case "XP+":
+            this.xp += 15;
+            this.showMessage("+15 XP");
+            break;
+          case "XP−":
+            this.xp = Math.max(0, this.xp - 10);
+            this.showMessage("−10 XP");
+            break;
+          case "💥":
+            this.bonusInventory.explosion++;
+            this.showMessage("Бонус: 💥");
+            break;
+          case "🔄":
+            this.bonusInventory.shuffle++;
+            this.showMessage("Бонус: 🔄");
+            break;
+          case "🔨":
+            this.bonusInventory.destroy++;
+            this.showMessage("Бонус: 🔨");
+            break;
+          case "×2 XP":
+            this.xp *= 2;
+            this.showMessage("XP ×2!");
+            break;
+          case "🎁":
+            this.xp += 30;
+            this.showMessage("🎁 +30 XP");
+            break;
+          case "💣":
+            this.xp = 0;
+            this.showMessage("💣 XP обнулено!");
+            break;
+        }
+        this.updateXPBar();
+        this.updateBonusButtons();
+        this.saveGameState();
       }
 
       saveGameState() {
